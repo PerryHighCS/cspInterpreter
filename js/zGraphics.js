@@ -1,5 +1,4 @@
-export const zombieGraphics = {
-    globals: [
+export const zombieGraphics = [
         ['functions', new Map([
             ['MOVE_FORWARD', zForward],
             ['ROTATE_LEFT', zLeft],
@@ -12,8 +11,7 @@ export const zombieGraphics = {
             ['forward', "forward"],
             ['backward', "backward"]
             ])]
-    ]
-};
+    ];
 
 function zForward(params) {
     console.log("f", params);

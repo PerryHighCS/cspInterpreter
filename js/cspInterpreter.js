@@ -1,12 +1,12 @@
 import {cspParser} from './cspParser.js'
 
-const cspBuiltins = [
-    ['functions', new Map([
-            ['DISPLAY', (params)=>{console.log(...params);}],
-            ['INPUT', (params)=>{return window.prompt(...params);}],
-            ['RANDOM', (params)=>{let range = params[1] - params[0] + 1;
-                                  return Math.floor(Math.random() * range + params[0]);}]
-        ])]
+const cspBuiltins = 
+    [['functions', new Map([
+                ['DISPLAY', (params)=>{console.log(...params);}],
+                ['INPUT', (params)=>{return window.prompt(...params);}],
+                ['RANDOM', (params)=>{let range = params[1] - params[0] + 1;
+                                      return Math.floor(Math.random() * range + params[0]);}]
+                ])]
 ];
 
 class ReturnValue {
@@ -21,12 +21,11 @@ export class cspInterpreter {
      * 
      * @param {String} txt the source code in AP CSP text format
      * @param {Element} canvas the canvas to draw on
-     * @param {GraphicsImplementation} graphics the graphics implementation to
-     *                                 use for robot commands
+     * @param {Array[Map]} plugins global functions and arrays to add 
      * @param {Element} consolearea a pre to display program output in
      * 
      */
-    constructor(txt, canvas, graphics, consolearea) {
+    constructor(txt, canvas, plugins, consolearea) {
         const that = this;
         
         // redirect console.log to display on the consolearea
@@ -124,7 +123,7 @@ export class cspInterpreter {
             
             // Build up the initial stack
             stack = [];
-            stack[0] = mergeGlobals(cspBuiltins, graphics.globals);
+            stack[0] = mergeGlobals(cspBuiltins, ...plugins);
             mapFunctions(parsed.functions);
         
 
@@ -181,6 +180,13 @@ export class cspInterpreter {
             return theMap;
         }
 
+        /**
+         * Pause execution of the program, allowing for watching execution,
+         * single stepping, and updating the UI
+         * 
+         * @returns {Promise} A promise that will be resolved after the delay
+         *                    or rejected if a program stop has been requested
+         */
         async function delay() {
             await (()=>{
                 return new Promise((resolve, reject) => {
@@ -196,6 +202,12 @@ export class cspInterpreter {
             })();
         }
         
+        /**
+         * Force program execution to come to a stop
+         * 
+         * @returns {Promise} A promise that will be resolved when execution is
+         *                    stopped
+         */
         this.stop = async function() {
             if (isRunning) {
                 doStop = true;
@@ -261,11 +273,27 @@ export class cspInterpreter {
             throw 'Not an identifier: ' + node;
         }
 
+        /**
+         * Search the stack for a variable
+         * 
+         * @param {String} name the name of the variable to find
+         * @param {boolean} create should the variable be created if not found?
+         * @param {value|object} proto the value to give a variable if created
+         * @returns {unresolved|Map} the stack frame if the variable was found
+         *                           or created, null if creation wasn't allowed
+         */
         function searchStackVar(name, create, proto) {
             // Search for the variable in the stack
             let pos = stack.length - 1;
-            while (pos >= 0 && !stack[pos].get('vars').has(name)) {
-                pos--;
+            
+            // Check the current stack frame
+            if(!stack[pos].get('vars').has(name)) {
+                // If it is not present, check the global frame
+                pos = 0;
+                if(!stack[pos].get('vars').has(name)) {
+                    // If it isn't present there, flag for creation
+                    pos = -1;
+                }
             }
 
             // if the variable hasn't been found

@@ -118,7 +118,7 @@ function run() {
         zombie.stop();
     }
     
-    zombie = new cspInterpreter(code, canvas, zombieGraphics, consoledisp);
+    zombie = new cspInterpreter(code, canvas, [zombieGraphics], consoledisp);
     zombie.go();
 
     
