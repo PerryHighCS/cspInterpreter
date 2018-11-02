@@ -188,7 +188,9 @@ export class cspInterpreter {
                         if (doStop) {
                             reject("STOPPED");
                         }
-                        resolve();
+                        else {
+                            resolve();
+                        }
                     }, 100);
                 });
             })();
@@ -500,12 +502,7 @@ export class cspInterpreter {
                         } 
                         else {
                             if (node.args.type) {
-                                try {
-                                    return await nodeFunction[node.args.type](node.args);
-                                }
-                                catch (e) {
-                                    console.error(e);
-                                }
+                                return await nodeFunction[node.args.type](node.args);
                             } else if (node.type) {
                                 return await nodeFunction[node.type](node);
                             }
@@ -604,10 +601,12 @@ export class cspInterpreter {
             for (let s in node.args) {
                 const statement = node.args[s];
                 const rval = await doStatement(statement);
-
+                await delay();
+                
                 if (rval instanceof ReturnValue) {
                     return rval;
                 }
+                
             }
         }
 
@@ -644,11 +643,13 @@ export class cspInterpreter {
             else if (header.type === 'until') {
                 const condition = header.args;
 
-                while (!await evaluate(condition)) {
-                    const rval = doBlock(code);
+                let done = await evaluate(condition);
+                while (!done) {
+                    const rval = await doBlock(code);
                     if (rval instanceof ReturnValue) {
                         return rval;
                     }
+                    done = await evaluate(condition);
                 }
                 return;
             }
