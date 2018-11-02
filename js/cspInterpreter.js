@@ -3,7 +3,9 @@ import {cspParser} from './cspParser.js'
 const cspBuiltins = [
     ['functions', new Map([
             ['DISPLAY', (params)=>{console.log(...params);}],
-            ['INPUT', (params)=>{return window.prompt(...params);}]
+            ['INPUT', (params)=>{return window.prompt(...params);}],
+            ['RANDOM', (params)=>{let range = params[1] - params[0] + 1;
+                                  return Math.floor(Math.random() * range + params[0]);}]
         ])]
 ];
 
@@ -109,19 +111,43 @@ export class cspInterpreter {
             return: doReturn,
             foreach: doForEach
         };
-
+        
+        let isRunning = false;
+        let doStop = false;
+        let stopped = true;
+        
         /**
          * Run the parsed program
          */
-        this.go = function() {        
+        this.go = async function() {
             if (program === null) {
                 throw "Fix program code before running.";
             }
 
+            if (isRunning === true) {
+                await stop();
+            }
+            isRunning = true;
+            stopped = false;
+            doStop = false;
+            
+            consolearea.lastDisplay = null;
+            consolearea.textContent = "";
+            
             // Execute each top-level statement in the program
             for (let s in program) {
                 let statement = program[s];
-                doStatement(statement);
+                try {
+                    await doStatement(statement);
+                    await delay();
+                }
+                catch(e) {
+                    if (e === 'STOPPED') {
+                        stopped = true;
+                        return;
+                    }
+                    throw e;
+                };
             }
         };
         
@@ -144,6 +170,38 @@ export class cspInterpreter {
             return theMap;
         }
 
+        async function delay() {
+            await (()=>{
+                return new Promise((resolve, reject) => {
+                    setTimeout(()=>{
+                        if (doStop) {
+                            reject("STOPPED");
+                        }
+                        resolve();
+                    }, 100);
+                });
+            })();
+        }
+        
+        this.stop = async function() {
+            if (isRunning) {
+                doStop = true;
+
+                await (()=>{
+                    return new Promise((resolve) => {
+                        let si = setInterval(()=>{
+                            if(stopped) {
+                                isRunning = false;
+                                clearInterval(si);
+                                resolve();
+                            }
+                        }, 100);
+
+                    });
+                })();
+            }
+        }
+        
         /**
          * Add all functions to the global function table
          * 
@@ -221,7 +279,7 @@ export class cspInterpreter {
          *                     found and the symbol cannot be created, or create
          *                     is false
          */
-        function findVar(node, create) {
+        async function findVar(node, create) {
             let name;
             let pos;
             let frame;
@@ -251,7 +309,7 @@ export class cspInterpreter {
                 case 'listelement':
                     // Get the variable name
                     name = getIdentifier(node.args[0]);
-                    let index = evaluate(node.args[1]);
+                    let index = await evaluate(node.args[1]);
 
                     // Find the variable in the stack
                     frame = searchStackVar(name, create, []);
@@ -276,8 +334,8 @@ export class cspInterpreter {
             }
         }
 
-        function getVarVal(node) {
-            let val = findVar(node, false);
+        async function getVarVal(node) {
+            let val = await findVar(node, false);
             if (typeof val !== 'object' || !val.get) {
                 console.error("No variable " + getIdentifier(node), node);
                 throw "No variable " + getIdentifier(node) + " at line " +
@@ -287,8 +345,8 @@ export class cspInterpreter {
             return val.get();
         }
 
-        function getListElementVal(node) {
-            let val = findVar(node, false);
+        async function getListElementVal(node) {
+            let val = await findVar(node, false);
             if (typeof val !== 'object' || !val.get) {
                 console.error("No variable " + getIdentifier(node), node);
                 throw "No variable " + getIdentifier(node) + " at line " +
@@ -298,11 +356,11 @@ export class cspInterpreter {
             return val.get();
         }
 
-        function getList(node) {        
+        async function getList(node) {        
             let lst = [];
 
             for (let i in node.args) {
-                lst.push(evaluate(node.args[i]));
+                lst.push(await evaluate(node.args[i]));
             }
 
             return lst;
@@ -314,7 +372,7 @@ export class cspInterpreter {
          * @param {Object} statement - the parsed statement to execute
          * @returns {undefined}
          */
-        function doStatement(statement) {
+        async function doStatement(statement) {
             if (typeof statement !== 'object') {
                 console.error("Not a statement", statement);
                 throw statement + " is not a statement";
@@ -330,7 +388,7 @@ export class cspInterpreter {
 
             // Run the statement
             if (handler) {
-                let rval = handler(statement.args);
+                let rval = await handler(statement.args);
 
                 if (rval instanceof ReturnValue) {
                     return rval;
@@ -356,10 +414,10 @@ export class cspInterpreter {
          * @param {Object} statement
          * @returns {none}
          */
-        function doAssignment(statement) {
-            let lval = findVar(statement.args[0], true);
+        async function doAssignment(statement) {
+            let lval = await findVar(statement.args[0], true);
 
-            let rval = nodeFunction[statement.args[1].type](statement.args[1]);
+            let rval = await nodeFunction[statement.args[1].type](statement.args[1]);
 
             lval.set(rval);
         }
@@ -376,7 +434,7 @@ export class cspInterpreter {
          *                            be returned, or nothing will be
          * 
          */
-        function doFunction(actual_params, formal_params, code, node) {
+        async function doFunction(actual_params, formal_params, code, node) {
             if (actual_params.length !== formal_params.length) {
                 console.error("Number of actual and formal parameters differ in function call", node);
                 throw "Number of actual and formal parameters differ in function call at line: " +
@@ -392,7 +450,7 @@ export class cspInterpreter {
                 vars.set(formal_params[i], actual_params[i]);
             }
 
-            let rval = nodeFunction[code.type](code);
+            let rval = await nodeFunction[code.type](code);
 
             if (rval instanceof ReturnValue) {
                 return rval.val;
@@ -401,12 +459,12 @@ export class cspInterpreter {
             stack.pop(); // remove the stack frame;
         }
 
-        function doReturn(node) {
+        async function doReturn(node) {
             if (node.args === null) {
                 return new ReturnValue(undefined);
             }
 
-            let rval = evaluate(node.args);
+            let rval = await evaluate(node.args);
             return new ReturnValue(rval);
         }
 
@@ -415,7 +473,7 @@ export class cspInterpreter {
          * @param {Object} node the parsed node to be evaluated
          * @returns {Number|String|Object|Array}  The evaluated result
          */
-        function evaluate(node) {
+        async function evaluate(node) {
             if (typeof node !== 'object') {
                 return node;
             }
@@ -424,7 +482,7 @@ export class cspInterpreter {
                     case 'number':
                     case 'boolean':
                     case 'string':
-                        return node.args;
+                        return await node.args;
                     case 'object':
                         if (Array.isArray(node.args)) {
                             console.error("evaluate array?", node.args);
@@ -433,13 +491,13 @@ export class cspInterpreter {
                         else {
                             if (node.args.type) {
                                 try {
-                                    return nodeFunction[node.args.type](node.args);
+                                    return await nodeFunction[node.args.type](node.args);
                                 }
                                 catch (e) {
                                     console.error(e);
                                 }
                             } else if (node.type) {
-                                return nodeFunction[node.type](node);
+                                return await nodeFunction[node.type](node);
                             }
                         }
                     default:
@@ -448,14 +506,14 @@ export class cspInterpreter {
                 }
             }
             else if (node.type) {
-                return nodeFunction[node.type](node);
+                return await nodeFunction[node.type](node);
             }
         }
 
-        function doOperation(node) {
+        async function doOperation(node) {
 
-            let lval = evaluate(node.args[0]);
-            let rval = evaluate(node.args[1]);
+            let lval = await evaluate(node.args[0]);
+            let rval = await evaluate(node.args[1]);
 
             switch (node.type) {
                 case 'add':
@@ -471,18 +529,18 @@ export class cspInterpreter {
             }
         }
 
-        function doNegate(node) {
-            return -(evaluate(node.args));
+        async function doNegate(node) {
+            return await -(evaluate(node.args));
         }
 
-        function doNot(node) {
-            return !(evaluate(node.args));
+        async function doNot(node) {
+            return await !(evaluate(node.args));
         }
 
-        function doRelation(node) {
+        async function doRelation(node) {
             let operation = node.args[0];
-            let lval = evaluate(node.args[1]);
-            let rval = evaluate(node.args[2]);
+            let lval = await evaluate(node.args[1]);
+            let rval = await evaluate(node.args[2]);
 
             switch (operation) {
                 case '==':
@@ -505,20 +563,20 @@ export class cspInterpreter {
          * @returns {undefined | value} if the function returns a value, that
          *                              value will be returned
          */
-        function doFunctionCall(node) {
+        async function doFunctionCall(node) {
             let name = getIdentifier(node.args[0]);
             let args = node.args[1];
 
             let params = [];
 
             for (let i in args) {
-                params.push(evaluate(args[i]));
+                params.push(await evaluate(args[i]));
             }
 
             let fun = stack[0].get('functions').get(name);
 
             if (fun) {
-                let rval = fun(params, node);
+                let rval = await fun(params, node);
 
                 return rval;
             }
@@ -531,11 +589,11 @@ export class cspInterpreter {
          * @returns {undefined | value} if the code in the block returns a value,
          *              that value will be returned
          */
-        function doBlock(node) {
+        async function doBlock(node) {
             // Execute each top-level statement in the program
             for (let s in node.args) {
                 let statement = node.args[s];
-                let rval = doStatement(statement);
+                let rval = await doStatement(statement);
 
                 if (rval instanceof ReturnValue) {
                     return rval;
@@ -550,12 +608,12 @@ export class cspInterpreter {
          * @returns {undefined | value} If the repeat block contains a return 
          *                              instruction, its value will be returned
          */
-        function doRepeat(node) {
+        async function doRepeat(node) {
             let header = node.args[0];
             let code = node.args[1];
 
             if (header.type === 'times') {
-                let num = evaluate(header.args);
+                let num = await evaluate(header.args);
 
                 if (num < 0) {
                     console.error("Invalid repeat limit: " + num , header);
@@ -566,7 +624,7 @@ export class cspInterpreter {
 
 
                 for (let i = 0; i < num; i++) {
-                    let rval = doBlock(code);
+                    let rval = await doBlock(code);
                     if (rval instanceof ReturnValue) {
                         return rval;
                     }
@@ -576,7 +634,7 @@ export class cspInterpreter {
             else if (header.type === 'until') {
                 let condition = header.args;
 
-                while (!evaluate(condition)) {
+                while (!await evaluate(condition)) {
                     let rval = doBlock(code);
                     if (rval instanceof ReturnValue) {
                         return rval;
@@ -597,13 +655,13 @@ export class cspInterpreter {
          * @returns {undefined | value} If the if executes a block that contains a
          *         return, the value of that return will be returned
          */
-        function doIf(node) {
+        async function doIf(node) {
             for (let i in node.args) {
                 let condition = node.args[i][0];
                 let code = node.args[i][1];
 
-                if (condition === null || evaluate(condition)) {
-                    let rval = doBlock(code);
+                if (condition === null || await evaluate(condition)) {
+                    let rval = await doBlock(code);
                     if (rval instanceof ReturnValue) {
                         return rval;
                     }
@@ -619,15 +677,15 @@ export class cspInterpreter {
          * @returns {undefined | value} If the for each block that contains a
          *         return, the value of that return will be returned
          */
-        function doForEach(node) {
-            let iter = findVar(node.args[0], true, null);
-            let list = evaluate(node.args[1]);
+        async function doForEach(node) {
+            let iter = await findVar(node.args[0], true, null);
+            let list = await evaluate(node.args[1]);
             let code = node.args[2];
 
             for (var i in list) {
                 iter.set(list[i]);
                 //console.log("Iterator:", iter.get());
-                let rval = doBlock(code);
+                let rval = await doBlock(code);
                 if (rval instanceof ReturnValue) {
                     return rval;
                 }

@@ -72,16 +72,20 @@ let canvas = document.getElementById("zDisplay");
 let runbutton = document.getElementById("runButton");
 let consoledisp = document.getElementById("consoleDisplay");
 
+let zombie = null;
+
 function run() {
     let code = source.value;
     
-    //try {
-        let zombie = new cspInterpreter(code, canvas, zombieGraphics, consoledisp);
-        zombie.go();
-    //}
-    //catch (e) {
-    //    alert (e);
-    //}
+    
+    if (zombie !== null) {
+        zombie.stop();
+    }
+    
+    zombie = new cspInterpreter(code, canvas, zombieGraphics, consoledisp);
+    zombie.go();
+
+    
     return false;
 }
 
