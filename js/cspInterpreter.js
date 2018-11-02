@@ -27,7 +27,7 @@ export class cspInterpreter {
      * 
      */
     constructor(txt, canvas, graphics, consolearea) {
-        let that = this;
+        const that = this;
         
         // redirect console.log to display on the consolearea
         if (consolearea && !console._oldlog) {
@@ -67,9 +67,8 @@ export class cspInterpreter {
 
         let parsed = null;
 
-        // build up the initial stack
+        // prepare the initial stack
         let stack = [];
-        stack[0] = mergeGlobals(cspBuiltins, graphics.globals);
 
         // Parse the source code provided
         try {
@@ -86,8 +85,7 @@ export class cspInterpreter {
         }
 
         // Extract the parsed statement list and functions for execution
-        let program = parsed.statements;
-        mapFunctions(parsed.functions);
+        const program = parsed.statements;
 
         const nodeFunction = {
             pass: pass,
@@ -123,6 +121,12 @@ export class cspInterpreter {
             if (program === null) {
                 throw "Fix program code before running.";
             }
+            
+            // Build up the initial stack
+            stack = [];
+            stack[0] = mergeGlobals(cspBuiltins, graphics.globals);
+            mapFunctions(parsed.functions);
+        
 
             if (isRunning === true) {
                 await stop();
@@ -136,7 +140,7 @@ export class cspInterpreter {
             
             // Execute each top-level statement in the program
             for (let s in program) {
-                let statement = program[s];
+                const statement = program[s];
                 try {
                     await doStatement(statement);
                     await delay();
@@ -151,6 +155,13 @@ export class cspInterpreter {
             }
         };
         
+        
+        /**
+         * Add global function and variables to the bottom stack frame
+         * 
+         * @param {type} maps
+         * @returns {Function.mergeGlobals.theMap}
+         */
         function mergeGlobals(...maps) {
             const theMap = new Map();
 
@@ -189,7 +200,7 @@ export class cspInterpreter {
 
                 await (()=>{
                     return new Promise((resolve) => {
-                        let si = setInterval(()=>{
+                        const si = setInterval(()=>{
                             if(stopped) {
                                 isRunning = false;
                                 clearInterval(si);
@@ -200,7 +211,7 @@ export class cspInterpreter {
                     });
                 })();
             }
-        }
+        };
         
         /**
          * Add all functions to the global function table
@@ -211,15 +222,15 @@ export class cspInterpreter {
         function mapFunctions(functions) {
             // Look at all of the functions in the function list
             for (let f in functions) {
-                let fun = functions[f];
+                const fun = functions[f];
 
                 // Get the name, formal parameter list, and code for the function
-                let name = getIdentifier(fun.args[0]);
-                let paramlist = fun.args[1];
-                let code = fun.args[2];
+                const name = getIdentifier(fun.args[0]);
+                const paramlist = fun.args[1];
+                const code = fun.args[2];
 
                 // Extract the parameter names for the formal parameters
-                let formal_params = [];
+                const formal_params = [];
                 if (paramlist) {
                     for (let p in paramlist) {
                         formal_params.push(getIdentifier(paramlist[p]));
@@ -281,7 +292,6 @@ export class cspInterpreter {
          */
         async function findVar(node, create) {
             let name;
-            let pos;
             let frame;
 
             switch (node.type) {
@@ -309,7 +319,7 @@ export class cspInterpreter {
                 case 'listelement':
                     // Get the variable name
                     name = getIdentifier(node.args[0]);
-                    let index = await evaluate(node.args[1]);
+                    const index = await evaluate(node.args[1]);
 
                     // Find the variable in the stack
                     frame = searchStackVar(name, create, []);
@@ -335,7 +345,7 @@ export class cspInterpreter {
         }
 
         async function getVarVal(node) {
-            let val = await findVar(node, false);
+            const val = await findVar(node, false);
             if (typeof val !== 'object' || !val.get) {
                 console.error("No variable " + getIdentifier(node), node);
                 throw "No variable " + getIdentifier(node) + " at line " +
@@ -346,7 +356,7 @@ export class cspInterpreter {
         }
 
         async function getListElementVal(node) {
-            let val = await findVar(node, false);
+            const val = await findVar(node, false);
             if (typeof val !== 'object' || !val.get) {
                 console.error("No variable " + getIdentifier(node), node);
                 throw "No variable " + getIdentifier(node) + " at line " +
@@ -357,7 +367,7 @@ export class cspInterpreter {
         }
 
         async function getList(node) {        
-            let lst = [];
+            const lst = [];
 
             for (let i in node.args) {
                 lst.push(await evaluate(node.args[i]));
@@ -384,11 +394,11 @@ export class cspInterpreter {
             }
 
             // Find the function that will handle this type of statement
-            let handler = nodeFunction[statement.args.type];
+            const handler = nodeFunction[statement.args.type];
 
             // Run the statement
             if (handler) {
-                let rval = await handler(statement.args);
+                const rval = await handler(statement.args);
 
                 if (rval instanceof ReturnValue) {
                     return rval;
@@ -415,9 +425,9 @@ export class cspInterpreter {
          * @returns {none}
          */
         async function doAssignment(statement) {
-            let lval = await findVar(statement.args[0], true);
+            const lval = await findVar(statement.args[0], true);
 
-            let rval = await nodeFunction[statement.args[1].type](statement.args[1]);
+            const rval = await nodeFunction[statement.args[1].type](statement.args[1]);
 
             lval.set(rval);
         }
@@ -441,8 +451,8 @@ export class cspInterpreter {
                         node.location.start.line + " col: " + node.location.start.column;
             }
 
-            let vars = new Map();
-            let frame = new Map();
+            const vars = new Map();
+            const frame = new Map();
             frame.set('vars', vars);
             stack.push(frame);
 
@@ -450,7 +460,7 @@ export class cspInterpreter {
                 vars.set(formal_params[i], actual_params[i]);
             }
 
-            let rval = await nodeFunction[code.type](code);
+            const rval = await nodeFunction[code.type](code);
 
             if (rval instanceof ReturnValue) {
                 return rval.val;
@@ -464,7 +474,7 @@ export class cspInterpreter {
                 return new ReturnValue(undefined);
             }
 
-            let rval = await evaluate(node.args);
+            const rval = await evaluate(node.args);
             return new ReturnValue(rval);
         }
 
@@ -512,8 +522,8 @@ export class cspInterpreter {
 
         async function doOperation(node) {
 
-            let lval = await evaluate(node.args[0]);
-            let rval = await evaluate(node.args[1]);
+            const lval = await evaluate(node.args[0]);
+            const rval = await evaluate(node.args[1]);
 
             switch (node.type) {
                 case 'add':
@@ -538,9 +548,9 @@ export class cspInterpreter {
         }
 
         async function doRelation(node) {
-            let operation = node.args[0];
-            let lval = await evaluate(node.args[1]);
-            let rval = await evaluate(node.args[2]);
+            const operation = node.args[0];
+            const lval = await evaluate(node.args[1]);
+            const rval = await evaluate(node.args[2]);
 
             switch (operation) {
                 case '==':
@@ -564,19 +574,19 @@ export class cspInterpreter {
          *                              value will be returned
          */
         async function doFunctionCall(node) {
-            let name = getIdentifier(node.args[0]);
-            let args = node.args[1];
+            const name = getIdentifier(node.args[0]);
+            const args = node.args[1];
 
-            let params = [];
+            const params = [];
 
             for (let i in args) {
                 params.push(await evaluate(args[i]));
             }
 
-            let fun = stack[0].get('functions').get(name);
+            const fun = stack[0].get('functions').get(name);
 
             if (fun) {
-                let rval = await fun(params, node);
+                const rval = await fun(params, node);
 
                 return rval;
             }
@@ -592,8 +602,8 @@ export class cspInterpreter {
         async function doBlock(node) {
             // Execute each top-level statement in the program
             for (let s in node.args) {
-                let statement = node.args[s];
-                let rval = await doStatement(statement);
+                const statement = node.args[s];
+                const rval = await doStatement(statement);
 
                 if (rval instanceof ReturnValue) {
                     return rval;
@@ -609,11 +619,11 @@ export class cspInterpreter {
          *                              instruction, its value will be returned
          */
         async function doRepeat(node) {
-            let header = node.args[0];
-            let code = node.args[1];
+            const header = node.args[0];
+            const code = node.args[1];
 
             if (header.type === 'times') {
-                let num = await evaluate(header.args);
+                const num = await evaluate(header.args);
 
                 if (num < 0) {
                     console.error("Invalid repeat limit: " + num , header);
@@ -624,7 +634,7 @@ export class cspInterpreter {
 
 
                 for (let i = 0; i < num; i++) {
-                    let rval = await doBlock(code);
+                    const rval = await doBlock(code);
                     if (rval instanceof ReturnValue) {
                         return rval;
                     }
@@ -632,10 +642,10 @@ export class cspInterpreter {
                 return;
             }
             else if (header.type === 'until') {
-                let condition = header.args;
+                const condition = header.args;
 
                 while (!await evaluate(condition)) {
-                    let rval = doBlock(code);
+                    const rval = doBlock(code);
                     if (rval instanceof ReturnValue) {
                         return rval;
                     }
@@ -657,11 +667,11 @@ export class cspInterpreter {
          */
         async function doIf(node) {
             for (let i in node.args) {
-                let condition = node.args[i][0];
-                let code = node.args[i][1];
+                const condition = node.args[i][0];
+                const code = node.args[i][1];
 
                 if (condition === null || await evaluate(condition)) {
-                    let rval = await doBlock(code);
+                    const rval = await doBlock(code);
                     if (rval instanceof ReturnValue) {
                         return rval;
                     }
@@ -678,14 +688,14 @@ export class cspInterpreter {
          *         return, the value of that return will be returned
          */
         async function doForEach(node) {
-            let iter = await findVar(node.args[0], true, null);
-            let list = await evaluate(node.args[1]);
-            let code = node.args[2];
+            const iter = await findVar(node.args[0], true, null);
+            const list = await evaluate(node.args[1]);
+            const code = node.args[2];
 
             for (var i in list) {
                 iter.set(list[i]);
                 //console.log("Iterator:", iter.get());
-                let rval = await doBlock(code);
+                const rval = await doBlock(code);
                 if (rval instanceof ReturnValue) {
                     return rval;
                 }
