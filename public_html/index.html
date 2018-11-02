@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSP GO!</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <div>
+            <textarea id="zCode" style="width: 400px; height: 300px;">
+# a test program# a test program
+a <- [(10 MOD 3), (4 * 2 - 1)]
+DISPLAY(a) // with comments!!
+b <- a[0]
+a[0] <- a[1]
+a[1] <- b
+DISPLAY(a) // with comments!!
+
+FOR EACH num IN a {
+    DISPLAY(num)
+}
+
+DISPLAY("How many times to repeat?")
+times <- INPUT()
+
+DISPLAY(times)
+DISPLAY(go(times, right))
+
+PROCEDURE go(times, dir) {
+    count <- 0
+    REPEAT times / 2 TIMES {
+        MOVE_FORWARD()
+        IF (dir = right) {
+            ROTATE_RIGHT()
+        }
+        ELSE {
+            ROTATE_LEFT()
+        }
+        count <- count + 1
+    }
+
+    i <- 0
+    REPEAT UNTIL (i >= times / 2) {
+        MOVE_FORWARD()
+        IF (NOT dir = right) {
+            ROTATE_RIGHT()
+        }
+        ELSE {
+            ROTATE_LEFT()
+        }
+        count <- count + 1
+        i <- i + 1
+    }
+
+    DISPLAY(count)
+    RETURN (count)
+} 
+            </textarea>
+        </div>
+        <button id="runButton">Run</button>
+        <pre id="consoleDisplay" style="width: 400px; height: 200px; overflow-y: auto; white-space: pre-wrap; background-color: lightgray;"></pre>
+        <div>
+            <canvas id="zDisplay" width="400" height="400" style="width: 400px; height: 400px"></canvas>
+        </div>
+        
+        <script type="module">
+import {cspInterpreter} from "./js/cspInterpreter.js"
+import {zombieGraphics} from "./js/zGraphics.js"
+
+let source = document.getElementById("zCode");
+let canvas = document.getElementById("zDisplay");
+let runbutton = document.getElementById("runButton");
+let consoledisp = document.getElementById("consoleDisplay");
+
+function run() {
+    let code = source.value;
+    
+    //try {
+        let zombie = new cspInterpreter(code, canvas, zombieGraphics, consoledisp);
+        zombie.go();
+    //}
+    //catch (e) {
+    //    alert (e);
+    //}
+    return false;
+}
+
+runButton.addEventListener('click', run);
+        </script>
+    </body>
+</html>
