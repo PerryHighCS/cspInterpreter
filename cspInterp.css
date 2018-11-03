@@ -1,3 +1,8 @@
+.pauseLine {
+    background-color: blue;
+    color: white;
+}
+
 ul.programStack {
     margin: 0;
     padding: 0;

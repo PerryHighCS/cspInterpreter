@@ -18,40 +18,33 @@
     var functionList = [];
 }
 
-//done
 start = _ lst:global_statement_list _ {return new ParseRoot(lst, functionList);}; 
 
-//done
 keyword = 'IF' / 'ELSE' / 'PROCEDURE' / 'REPEAT' / 'TIMES' / 'AND' / 'OR' / 'NOT' / 'MOD' / 'FOR';
 
-//done
 _ "whitespace" = comment { return " "; } /
 				[ \t\n\r]* { return " "; };
 
-//done
 comment = ('#' [^\n]* '\n' /
 			'//' [^\n]* '\n');
 
-
-//done
 identifier = &(keyword)  // Don't match keywords
 	     / initial: [a-zA-Z] rest:([a-zA-Z0-9_]*)
                 { return new ParseNode('identifier', initial + rest.join(""), location()); };
 
-//done
 list_element = id:identifier _ '[' _ index:primary_value _ ']' 
                     {return new ParseNode('listelement', [id, index], location());};
 
-//done
-global_statement_list = (global_statement)*;
+global_statement_list = _ f:global_statement _ r:global_statement_list
+						{return [f].concat(r);}
+					/ s:global_statement
+                    	{return [s];};
 
-//done
 global_statement = _ st:statement _ {return st;} 
                    / _ f:function_definition _ {return f;};
 
-//done
-statement = _ stmt:(assignment / repeat_block / if_block / for_each_block /
-                    return / function_call) _
+statement = stmt:(assignment / repeat_block / if_block / for_each_block /
+                    return / function_call)
                 {return new ParseNode('statement', stmt, location());};
 
 assignment = id:identifier _ '<-' _ val:primary_value 
@@ -59,194 +52,155 @@ assignment = id:identifier _ '<-' _ val:primary_value
              / id:list_element _ '<-' _ val:primary_value
                 {return new ParseNode('assignment', [id, val], location()); };
 
-//done
 value_list  = '[' _ list:list_value _ ']' 
                 {return new ParseNode('list', list, location());}
             / '[' _ ']' // Empty list
                 {return new ParseNode('list', [], location());};
 
-//done
 list_value = first:primary_value _ ',' _ rest:list_value
                 {return [first].concat(rest);}
             / v: primary_value {return [v];};
 
-//done
 function_call = id:identifier _ '(' _ pl:parameter_list _ ')' 
                     {return new ParseNode('function_call', [id, pl], location());} 
                 / id:identifier _ '(' _ ')' 
                     {return new ParseNode('function_call', [id, null], location());}; 
 
-//done
 parameter_list = first:primary_value _ ',' _ rest:parameter_list {return [first].concat(rest);}
                 / v:primary_value {return [v];};
-      
-//done           
+        
 primary_value = c:condition {return new ParseNode('eval', c, location());}
                 / value_list;
 
-//done
 condition = or_expression;
 
-//done
 or_expression = l:and_expression _ 'OR' _ r:or_expression 
                     {return new ParseNode('OR', [l, r], location());}
                 / and_expression;
 
-//done
 and_expression = l:relation _ 'AND' _ r:and_expression  
                     {return new ParseNode('AND', [l, r], location());}
                 / relation;
 
-//done
 relation = l:sub_expression _ op:relationOp _ r:relation
                     {return new ParseNode('relation', [op, l, r], location());}
                 / sub_expression;
 
-//done
 relationOp = '>=' / '<=' / '=' {return '==';} / '!=' / '>' / '<';
 
-//done
 sub_expression = l:add_expression _ '-' _ r:sub_expression
                     {return new ParseNode('sub', [l,r], location());}
                 / add_expression;
 
-//done
 add_expression = l:mod_expression _ '+' _ r:add_expression
                     {return new ParseNode('add', [l,r], location());} 
                 / mod_expression;
 
-//done
 mod_expression = l:div_expression _ 'MOD' _ r:mod_expression
                     {return new ParseNode('mod', [l,r], location());}	
                 / div_expression;
 
-//done
 div_expression = l:mul_expression _ '/' _ r:div_expression
                     {return new ParseNode('div', [l,r], location());}
                 / mul_expression;
 
-//done
 mul_expression = l:negation _ '*'_ r:mul_expression
                     {return new ParseNode('mul', [l,r], location());} 
                 / negation;
 
-//done
 negation = '-' _ t:term 
                 {return new ParseNode('negate', t, location());}
             / 'NOT' _ t:term  
                 {return new ParseNode('NOT', t, location());} 
             / term;
 
-//done
 term = '(' _ v:primary_value _ ')'
                  {return v;}
         / final_value;
 
-//done
 final_value = boolean_value / number / list_element / function_call / 
                 identifier / string;
 
-//done
 boolean_value = val:('true'/'false') 
                     {return val==='true';};
 
-//done
 number = float / integer;
 
-//done
 float = digits:([0-9]*'.'[0-9]+)
                 { return parseFloat(digits.join("")); } 
         / digits:([0-9]+'.'[0-9]*)
                 { return parseFloat(digits.join("")); };
 
-//done
 integer = digits:[0-9]+ 
                 { return parseInt(digits.join(""), 10); };
 
-//done
 string = ["] str:( escape / [^"\n] )* ["]
             { return str.join(""); }
          / '\''  str:( escape / [^'\n] )* '\''
             { return str.join(""); };
 
-//done
 escape = '\\n' {return "\n";}
         / '\\t' {return "\t";}
         / '\\\'' {return "\'";}
         / '\\"' {return "\"";}
 
-//done
 function_definition = sig:function_signature _ code:code_block 
                         {
                             functionList.push(new ParseNode('function', [sig[0], sig[1], code], location()));  // Add the function to the global function list
-                            return new ParseNode('statement', new ParseNode('pass', null), location());  // and replace with a noop
+                            return new ParseNode('statement', new ParseNode('pass', null), null);  // and replace with a noop
                         };  
-      
-//done                  
+                 
 function_signature = 'PROCEDURE' _ name:identifier _ '(' _ args:identifier_list _ ')'
                         {return [name, args];}
                     / 'PROCEDURE' _ name:identifier _ '(' _ ')'
                     	{return [name, []];};
 
-//done
 identifier_list = first:(list_element / identifier) _ ',' _ rest:identifier_list
                         {return [first].concat(rest);}
                 / id:(list_element / identifier) 
                         {return [id];};
 
-//done
 code_block = '{' _ code:block_statement_list _ '}'
                     {return new ParseNode('block', code, location());}
             / '{' _ '}' 
                     {return new ParseNode('block', [], location());};
 
-//done
-block_statement_list = first:statement _ rest:block_statement_list 
+block_statement_list = _ first:statement _ rest:block_statement_list _
                             {return [first].concat(rest);}
                     / s:statement {return [s];};
 
-//done
 return = 'RETURN' _ '(' _ v:primary_value _ ')'
             {return new ParseNode('return', v, location());}
         / 'RETURN' _ '(' _ ')' 
             {return new ParseNode('return', null, location());};
-      
-//done   
+  
 repeat_block = head:repeat_header _ code:code_block 
             {return new ParseNode('repeat', [head, code], location());};
-  
-//done
+
 repeat_header = repeat_times / repeat_until;
 
-//done
 repeat_times = 'REPEAT' _ v:sub_expression _ 'TIMES' 
                     {return new ParseNode('times', new ParseNode('eval', v, location()), location());};
-      
-//done          
+        
 repeat_until = 'REPEAT' _ 'UNTIL' _ '(' _ cond:primary_value _ ')'
                     {return new ParseNode('until', cond, location());}
-      
-//done              
+             
 if_block = cond:if_header _ code:code_block _ el:else_block 
                     {return new ParseNode('if', [[cond, code]].concat(el), location());}
             / cond:if_header _ code:code_block
         	{return new ParseNode('if', [[cond, code], []], location());};
 
-//done
 if_header = 'IF' _ '(' _ cond:primary_value _ ')' {return cond;};
 
-//done
 else_block = first:else_if_block _ rest:else_block
                 {return first.concat(rest);}
             / else_if_block
             / 'ELSE' _ code:code_block
             	{return [[null, code]];};
 
-//done
 else_if_block = 'ELSE' _ cond:if_header _ code:code_block
                 {return [[cond, code]];};
 
-//NOT
 for_each_block = 'FOR' _ 'EACH' _ v:identifier _ 'IN' _ 
                     list:(identifier / value_list) _ code:code_block
                         {return new ParseNode('foreach', [v, list, code], location());};

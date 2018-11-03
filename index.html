@@ -123,8 +123,11 @@ function run() {
         zombie.stop();
     }
     
-    zombie = new cspInterpreter(code, [zombieGraphics], consoledisp, canvas, stackdisp);
-    zombie.go();
+    $(runbutton).focus();
+    
+    zombie = new cspInterpreter(code, [zombieGraphics], consoledisp, canvas,
+                                stackdisp, editor);
+    zombie.go().then(() => $(stopbutton).focus());
 
     
     return false;

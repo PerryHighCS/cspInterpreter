@@ -33,8 +33,9 @@ export class cspInterpreter {
      * @param {Element} consolearea a pre to display program output in
      * @param {Element} canvas the canvas to draw on
      * @param {Element} stackcontainer a div to contain a stack display
+     * @param {CodeMirror} codemirror the codemirror containing the source code
      */
-    constructor(txt, plugins, consolearea, canvas, stackcontainer) {
+    constructor(txt, plugins, consolearea, canvas, stackcontainer, codemirror) {
         const that = this;
         
         // redirect console.log to display on the consolearea
@@ -135,6 +136,8 @@ export class cspInterpreter {
                 throw "Fix program code before running.";
             }
             
+            $(".pauseLine").removeClass("pauseLine");
+            
             // Build up the initial stack
             stack = [];
             stack[0] = mergeGlobals(cspBuiltins, ...plugins);
@@ -159,8 +162,8 @@ export class cspInterpreter {
             for (let s in program) {
                 const statement = program[s];
                 try {
+                    await delay(statement);
                     await doStatement(statement);
-                    await delay();
                 }
                 catch(e) {
                     if (e === 'STOPPED') {
@@ -200,14 +203,32 @@ export class cspInterpreter {
             return theMap;
         }
 
+        let hilightedCode;
         /**
          * Pause execution of the program, allowing for watching execution,
          * single stepping, and updating the UI
          * 
+         * @param {ParseNode} node the node currently executing
          * @returns {Promise} A promise that will be resolved after the delay
          *                    or rejected if a program stop has been requested
          */
-        async function delay() {
+        async function delay(node) {
+            if (codemirror && node.location) {
+                if (hilightedCode) {
+                    hilightedCode.clear();
+                }
+                const start = {line: node.location.start.line - 1,
+                                     ch: node.location.start.column - 1};
+                const end = {line: node.location.end.line - 1, 
+                                     ch: node.location.end.column - 1};
+                                 
+                                 
+                codemirror.scrollIntoView({from: start, to: end});
+                hilightedCode = codemirror.markText(
+                                start, end,
+                                 {className: "pauseLine"});
+            }
+            
             await (()=>{
                 return new Promise((resolve, reject) => {
                     updateStack();
@@ -216,9 +237,12 @@ export class cspInterpreter {
                             reject("STOPPED");
                         }
                         else {
+                            if (hilightedCode) {
+                                hilightedCode.clear();
+                            }
                             resolve();
                         }
-                    }, 100);
+                    }, 1000);
                 });
             })();
         }
@@ -237,6 +261,9 @@ export class cspInterpreter {
                     return new Promise((resolve) => {
                         const si = setInterval(()=>{
                             if(stopped) {
+                                if (hilightedCode) {
+                                    hilightedCode.clear();
+                                }
                                 isRunning = false;
                                 clearInterval(si);
                                 resolve();
@@ -245,6 +272,11 @@ export class cspInterpreter {
 
                     });
                 })();
+            }
+            else {
+                if (hilightedCode) {
+                    hilightedCode.clear();
+                }
             }
         };
         
@@ -674,8 +706,8 @@ export class cspInterpreter {
             // Execute each top-level statement in the program
             for (let s in node.args) {
                 const statement = node.args[s];
+                await delay(statement);
                 const rval = await doStatement(statement);
-                await delay();
                 
                 if (rval instanceof ReturnValue) {
                     return rval;
