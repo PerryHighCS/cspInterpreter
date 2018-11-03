@@ -24,6 +24,7 @@
                     <div class="clearfix">
                         <div class="btn-group float-right">
                             <button type="button" id="runButton" class="btn btn-primary">Run</button>
+                            <button type="button" id="stepButton" class="btn btn-secondary">Step</button>
                             <button type="button" id="stopButton" class="btn btn-danger">Stop</button>
                         </div>
                     </div>
@@ -116,19 +117,28 @@ editor.setSize(null,height);
 
 let zombie = null;
 
-function run() {
+function run(singleStep) {
     let code = editor.getValue();
     
     if (zombie !== null) {
-        zombie.stop();
+        if (zombie.runMode() === 'run' || zombie.runMode() === 'end') {
+            zombie.stop();
+        }
+        else {
+            zombie.continue();
+            return false;
+        }
     }
+    
+    clearMarks();
     
     $(runbutton).focus();
     
     zombie = new cspInterpreter(code, [zombieGraphics], consoledisp, canvas,
                                 stackdisp, editor);
-    zombie.go().then(() => $(stopbutton).focus());
-
+    zombie.go(singleStep)
+            .then(() => $(stopbutton).focus())
+            .catch((e) => alert(e));
     
     return false;
 }
@@ -139,8 +149,30 @@ function stop() {
     }
 }
 
-runButton.addEventListener('click', run);
+function step() {
+    clearMarks();
+    
+    if (zombie == null) {
+        run(true);
+    }
+    else if (zombie.runMode() === 'run' || zombie.runMode() === 'step') {
+        zombie.step();
+    }
+    else {
+        run(true);
+    }
+    
+}
+
+runButton.addEventListener('click', ()=>run(false));
+stepButton.addEventListener('click', step);
 stopButton.addEventListener('click', stop);
+
+function clearMarks() {
+    let marks = editor.getAllMarks();
+    
+    marks.forEach(mark => mark.clear());
+}
         </script>
 
     </body>

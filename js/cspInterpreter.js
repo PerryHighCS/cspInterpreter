@@ -124,14 +124,24 @@ export class cspInterpreter {
             foreach: doForEach
         };
         
+        let hasStarted = false;
         let isRunning = false;
         let doStop = false;
         let stopped = true;
+        let isStepping = false;
+        let step = false;
+        
+        let hilightedCode;
+
+        let delayCount = -1;
         
         /**
          * Run the parsed program
+         * 
+         * @param {boolean} singleStep set up for single stepping, not
+         *                           continuous running
          */
-        this.go = async function() {
+        this.go = async function(singleStep) {
             if (program === null) {
                 throw "Fix program code before running.";
             }
@@ -151,9 +161,12 @@ export class cspInterpreter {
             if (isRunning === true) {
                 await stop();
             }
+            isStepping = singleStep;
+            step = false;
             isRunning = true;
             stopped = false;
             doStop = false;
+            hasStarted = true;
             
             consolearea.lastDisplay = null;
             consolearea.textContent = "";
@@ -173,8 +186,9 @@ export class cspInterpreter {
                     throw e;
                 };
             }
+            
+            isRunning = false;
         };
-        
         
         /**
          * Add global function and variables to the bottom stack frame
@@ -203,7 +217,40 @@ export class cspInterpreter {
             return theMap;
         }
 
-        let hilightedCode;
+        /**
+         * Determine the current run state of this interpreter
+         * @returns {String} "error" - code error, "step" - single stepping, 
+         *                   "run" - continuous running, "stop" - execution not started
+         *                   "end" - execution completed
+         */
+        this.runMode = function() {
+            if (!parsed) {
+                return "error";
+            }
+            
+            if (isRunning) {
+                if (isStepping) {
+                    return "step";
+                }
+                return "run";                
+            }
+            
+            if (hasStarted) {
+                return "end";
+            }
+            
+            return "stop";
+        };
+        
+        /**
+         * Set the execution speed.
+         * 
+         * @param {integer} count
+         */
+        this.setSpeed = function(count) {
+            delayCount = (count >= 0) ? (count < 500) ? count : 500 : 0;
+        };
+        
         /**
          * Pause execution of the program, allowing for watching execution,
          * single stepping, and updating the UI
@@ -213,7 +260,9 @@ export class cspInterpreter {
          *                    or rejected if a program stop has been requested
          */
         async function delay(node) {
+            // Hilight the code contained in the node
             if (codemirror && node.location) {
+                // clear the last hilight
                 if (hilightedCode) {
                     hilightedCode.clear();
                 }
@@ -229,22 +278,40 @@ export class cspInterpreter {
                                  {className: "pauseLine"});
             }
             
-            await (()=>{
-                return new Promise((resolve, reject) => {
-                    updateStack();
-                    setTimeout(()=>{
-                        if (doStop) {
-                            reject("STOPPED");
-                        }
-                        else {
-                            if (hilightedCode) {
-                                hilightedCode.clear();
+            // If there is no reason to delay, then don't delay
+            if (doStop || isStepping || delayCount > 0) {
+                await (()=>{
+                    return new Promise((resolve, reject) => {
+                        updateStack();  // update the display
+                        
+                        // pause for delayCount intervals, quitting as needed
+                        let count = 0;
+                        let si = setInterval(()=>{
+                            // Abandon the delay if execution is ordered to stop
+                            if (doStop) {
+                                clearInterval(si);
+                                reject("STOPPED");
                             }
-                            resolve();
-                        }
-                    }, 1000);
-                });
-            })();
+                            // If single stepping and a step is received, continue
+                            else if (isStepping && step) {
+                                step = false;
+                                clearInterval(si);
+                                resolve();
+                            }
+                            // If the delay period is over, continue
+                            else if (!isStepping && count >= delayCount) {
+                                if (hilightedCode) {
+                                    hilightedCode.clear();
+                                }
+                                clearInterval(si);
+                                resolve();
+                            }
+                            // Otherwise, wait
+                            count ++;
+                        }, 50); // 50ms intervals
+                    });
+                })();
+            }
         }
         
         /**
@@ -261,9 +328,7 @@ export class cspInterpreter {
                     return new Promise((resolve) => {
                         const si = setInterval(()=>{
                             if(stopped) {
-                                if (hilightedCode) {
-                                    hilightedCode.clear();
-                                }
+                                isStepping = false;
                                 isRunning = false;
                                 clearInterval(si);
                                 resolve();
@@ -273,10 +338,25 @@ export class cspInterpreter {
                     });
                 })();
             }
+        };
+        
+        this.step = async function() {
+            if (isRunning) {
+                isStepping = true;
+                step = true;
+            }
             else {
-                if (hilightedCode) {
-                    hilightedCode.clear();
-                }
+                throw "Not Running";
+            }
+        };
+        
+        this.continue = async function() {
+            if (isRunning) {
+                isStepping = false;
+                step = true;
+            }
+            else {
+                throw "Not Running";
             }
         };
         
@@ -438,9 +518,9 @@ export class cspInterpreter {
          */
         async function getVarVal(node) {
             const val = await findVar(node, false);
-            if (typeof val !== 'object' || !val.get) {
-                console.error("No variable " + getIdentifier(node), node);
-                throw "No variable " + getIdentifier(node) + " at line " +
+            if (!val || typeof val !== 'object' || !val.get) {
+                console.error("No such variable " + getIdentifier(node), node);
+                throw "No such variable " + getIdentifier(node) + " at line " +
                         node.location.start.line + " col: " + 
                         node.location.start.column;
             }
@@ -456,9 +536,9 @@ export class cspInterpreter {
         async function getListElementVal(node) {
             const val = await findVar(node, false); // get an accessor for the element
             
-            if (typeof val !== 'object' || !val.get) {
-                console.error("No variable " + getIdentifier(node), node);
-                throw "No variable " + getIdentifier(node) + " at line " +
+            if (!val || typeof val !== 'object' || !val.get) {
+                console.error("No such list " + getIdentifier(node.args[0]), node);
+                throw "No such list " + getIdentifier(node.args[0]) + " at line " +
                         node.location.start.line + " col: " + 
                         node.location.start.column;
             }
