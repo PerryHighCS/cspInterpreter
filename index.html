@@ -11,7 +11,9 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/addon/edit/matchbrackets.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/addon/comment/continuecomment.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/addon/comment/comment.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/addon/selection/mark-selection.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/mode/javascript/javascript.min.js"></script>
+        <link rel="stylesheet" href="./cspInterp.css">
 
     </head>
     <body >
@@ -31,9 +33,9 @@
 # a test program
 a <- [(10 MOD 3), (4 * 2 - 1)]
 DISPLAY(a) // with comments!!
-b <- a[0]
-a[0] <- a[1]
-a[1] <- b
+b <- a[1]
+a[1] <- a[2]
+a[2] <- b
 DISPLAY(a) // with comments!!
 
 FOR EACH num IN a {
@@ -45,6 +47,7 @@ times <- INPUT()
 
 DISPLAY(times)
 DISPLAY(go(times, right))
+DISPLAY("DONE!\n")
 
 PROCEDURE go(times, dir) {
     count <- 0
@@ -78,16 +81,18 @@ PROCEDURE go(times, dir) {
                         </textarea>
                     </div>
                 </div>
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div>
                         <canvas id="zDisplay" width="400" height="400" style="width: 400px; height: 400px; border: 1px solid"></canvas>
                     </div>
                     Output:
                     <pre id="consoleDisplay" style="width: 400px; height: 200px; overflow-y: auto; white-space: pre-wrap; background-color: lightgray;"></pre>
                 </div>
+                <div id="stackDisplay" class="col-lg-2">
+                </div>
             </div>
         </div>
-        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
         <script type="module">
@@ -99,6 +104,7 @@ let canvas = document.getElementById("zDisplay");
 let runbutton = document.getElementById("runButton");
 let stopbutton = document.getElementById("stopButton");
 let consoledisp = document.getElementById("consoleDisplay");
+let stackdisp = document.getElementById("stackDisplay");
 
 let height = $(source).height();
 let editor = CodeMirror.fromTextArea(source, {
@@ -113,12 +119,11 @@ let zombie = null;
 function run() {
     let code = editor.getValue();
     
-    
     if (zombie !== null) {
         zombie.stop();
     }
     
-    zombie = new cspInterpreter(code, canvas, [zombieGraphics], consoledisp);
+    zombie = new cspInterpreter(code, [zombieGraphics], consoledisp, canvas, stackdisp);
     zombie.go();
 
     

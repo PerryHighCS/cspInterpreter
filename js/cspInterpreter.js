@@ -3,7 +3,16 @@ import {cspParser} from './cspParser.js'
 const cspBuiltins = 
     [['functions', new Map([
                 ['DISPLAY', (params)=>{console.log(...params);}],
-                ['INPUT', (params)=>{return window.prompt(...params);}],
+                ['INPUT', (params)=>{let got = window.prompt(...params);
+                                    if (got === null) {
+                                        throw "CANCELED";
+                                    }
+                                    else if (!isNaN(Number(got))) {
+                                        return Number(got);
+                                    }
+                                    return got;
+                                    
+                        }],
                 ['RANDOM', (params)=>{let range = params[1] - params[0] + 1;
                                       return Math.floor(Math.random() * range + params[0]);}]
                 ])]
@@ -20,12 +29,12 @@ export class cspInterpreter {
      * Create an interpreter to parse and run an APCSP pseudocode program
      * 
      * @param {String} txt the source code in AP CSP text format
-     * @param {Element} canvas the canvas to draw on
      * @param {Array[Map]} plugins global functions and arrays to add 
      * @param {Element} consolearea a pre to display program output in
-     * 
+     * @param {Element} canvas the canvas to draw on
+     * @param {Element} stackcontainer a div to contain a stack display
      */
-    constructor(txt, canvas, plugins, consolearea) {
+    constructor(txt, plugins, consolearea, canvas, stackcontainer) {
         const that = this;
         
         // redirect console.log to display on the consolearea
@@ -63,13 +72,17 @@ export class cspInterpreter {
                 }
             };
         }
-
-        let parsed = null;
-
+        
         // prepare the initial stack
         let stack = [];
-
+        let stackList = $("<ul>");
+        stackList.addClass("programStack");
+        
+        $(stackcontainer).empty();
+        $(stackcontainer).append(stackList);
+        
         // Parse the source code provided
+        let parsed = null;
         try {
             parsed = cspParser.parse(txt);
         } catch (e) {
@@ -86,6 +99,7 @@ export class cspInterpreter {
         // Extract the parsed statement list and functions for execution
         const program = parsed.statements;
 
+        // A map linking parsenode types with handler functions
         const nodeFunction = {
             pass: pass,
             assignment: doAssignment,
@@ -125,7 +139,11 @@ export class cspInterpreter {
             stack = [];
             stack[0] = mergeGlobals(cspBuiltins, ...plugins);
             mapFunctions(parsed.functions);
-        
+            stack[0].set('function', ['Global']);
+            
+            // Prepare the stack display
+            stackList.empty();
+            updateStack();
 
             if (isRunning === true) {
                 await stop();
@@ -166,13 +184,15 @@ export class cspInterpreter {
 
             for (const map of maps) {
                 for (const [k, v] of map) {
+                    let m;
                     if (theMap.has(k)) {
-                        const m = theMap.get(k);
-                        for (const [k2, v2] of v) {
-                            m.set(k2, v2);
-                        }
+                        m = theMap.get(k);
                     } else {
-                        theMap.set(k, v);
+                        m = new Map(); 
+                        theMap.set(k, m);
+                    }
+                    for (const [k2, v2] of v) {
+                        m.set(k2, v2);
                     }
                 }
             }
@@ -190,6 +210,7 @@ export class cspInterpreter {
         async function delay() {
             await (()=>{
                 return new Promise((resolve, reject) => {
+                    updateStack();
                     setTimeout(()=>{
                         if (doStop) {
                             reject("STOPPED");
@@ -304,7 +325,7 @@ export class cspInterpreter {
                 }
                 // create the variable in the top stack frame
                 pos = stack.length - 1;
-                stack[0].get('vars').set(name, proto);
+                stack[pos].get('vars').set(name, proto);
             }
 
             return stack[pos];
@@ -335,6 +356,7 @@ export class cspInterpreter {
                         return null;
                     }
 
+                    // Construct and return an accessor for the variable
                     return {
                         get: function () {
                             return frame.get('vars').get(name);
@@ -347,16 +369,17 @@ export class cspInterpreter {
                     break;
 
                 case 'listelement':
-                    // Get the variable name
+                    // Get the list name and element index
                     name = getIdentifier(node.args[0]);
-                    const index = await evaluate(node.args[1]);
+                    const index = await evaluate(node.args[1]) - 1; // CSP lists are 1 based indexed
 
-                    // Find the variable in the stack
+                    // Find the list in the stack
                     frame = searchStackVar(name, create, []);
                     if (frame === null) {
                         return null;
                     }
 
+                    // Construct and return an accessor for the list element
                     return {
                         get: function () {
                             return frame.get('vars').get(name)[index];
@@ -374,6 +397,13 @@ export class cspInterpreter {
             }
         }
 
+        /**
+         * Get the value stored in a program variable
+         * 
+         * @param {ParseNode} node the root node identifing the variable to
+         *                          access
+         * @returns {value} the value stored in the variable
+         */
         async function getVarVal(node) {
             const val = await findVar(node, false);
             if (typeof val !== 'object' || !val.get) {
@@ -385,17 +415,31 @@ export class cspInterpreter {
             return val.get();
         }
 
+        /**
+         * Get the value contained in a list element
+         * 
+         * @param {ParseNode} node the root node describing the list element
+         * @returns {value} the contents of the list element
+         */
         async function getListElementVal(node) {
-            const val = await findVar(node, false);
+            const val = await findVar(node, false); // get an accessor for the element
+            
             if (typeof val !== 'object' || !val.get) {
                 console.error("No variable " + getIdentifier(node), node);
                 throw "No variable " + getIdentifier(node) + " at line " +
                         node.location.start.line + " col: " + 
                         node.location.start.column;
             }
-            return val.get();
+            return val.get(); // Return the element's value
         }
 
+        /**
+         * Get a list of values
+         * 
+         * @param {ParseNode} node the root node of the value list
+         * @returns {Promise} A promise that will be fulfilled with an array
+         *                    containing the list of evaluated values
+         */
         async function getList(node) {        
             const lst = [];
 
@@ -484,6 +528,8 @@ export class cspInterpreter {
             const vars = new Map();
             const frame = new Map();
             frame.set('vars', vars);
+            frame.set('function', getIdentifier(node.args[0]) + "()");
+            
             stack.push(frame);
 
             for (let i in actual_params) {
@@ -492,11 +538,11 @@ export class cspInterpreter {
 
             const rval = await nodeFunction[code.type](code);
 
+            stack.pop(); // remove the stack frame;
+            
             if (rval instanceof ReturnValue) {
                 return rval.val;
             }
-
-            stack.pop(); // remove the stack frame;
         }
 
         async function doReturn(node) {
@@ -729,6 +775,86 @@ export class cspInterpreter {
                     return rval;
                 }
             }
+        }
+        
+        function updateStack() {
+            for (let i in stack) {
+                let frame = stack[i];
+                let frameEl = frame.get('frameElement');
+                
+                if (typeof frameEl === 'undefined') {
+                    frameEl = $("<li>");
+                    frame.set('frameElement', frameEl);
+                    stackList.prepend(frameEl);
+                    
+                    let caption = $("<h3>");
+                    caption.text(stack[i].get('function'));
+                    frameEl.append(caption);
+                    
+                    let varList = $("<dl>");
+                    varList.addClass("variables");
+                    varList.addClass("dl-horizontal");
+                    frame.set('variableContainer', varList);
+                    frame.set('variableElements', new Map());
+                    frameEl.append(varList);
+                }
+                
+                let varElements = frame.get('variableElements');
+                let varContainer = frame.get('variableContainer');
+                
+                frame.get('vars').forEach((value, key) => {
+                    let varDisp = varElements.get(key);
+                    
+                    if (!varDisp) {
+                        let varName = $("<dt>");
+                        let varVal = $("<dd>");
+                        varName.text(key);
+                        varDisp = [varName, varVal];
+                        varElements.set(key, varDisp);
+                        varContainer.prepend(varVal).prepend(varName);
+                    }
+                    
+                    switch (typeof value) {
+                    case 'number':
+                    case 'boolean':
+                        varDisp[1].text(value);
+                        break;
+                    case 'string':
+                        varDisp[1].text('"' + value + '"');
+                        break;
+                    case 'object':
+                        if (Array.isArray(value)) {
+                            varDisp[1].text('[' + value + ']');
+                        }
+                        else {
+                            varDisp[1].text(value);
+                        }
+                        break;
+                    default:
+                            varDisp[1].text(value);
+                    }
+                });
+            }
+            
+            let children = stackList.children();
+            
+            children.each((index, el) => {
+                el = $(el);
+                let found = false;
+                for (let j in stack) {
+                    if (stack[j].get('frameElement').is(el)) {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found) {
+                    el.remove();
+                }
+                else if (index === 0 || index === children.length - 1) {
+                    el.removeClass("inaccessable");
+                }
+            });
         }
     }
 }

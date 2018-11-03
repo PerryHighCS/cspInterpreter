@@ -1,0 +1,40 @@
+ul.programStack {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+.programStack h3 {
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+ul.programStack > li {
+    border: 1px solid black;
+    border-top: 0;
+    padding: 5px;
+}
+
+ul.programStack dt {
+    font-size: 1em;
+    font-weight: 500;
+    grid-column-start: 1;
+}
+
+ul.programStack dd {
+    grid-column-start: 2;
+}
+
+ul.programStack dt:after {
+    content: "\a0\2192\a0";
+    float: right;
+}
+
+ul.programStack dl {
+    width: 100%;
+    padding: 5px;
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content auto;
+    line-height: 1em;
+}
