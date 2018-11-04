@@ -248,7 +248,7 @@ export class cspInterpreter {
          * @param {integer} count
          */
         this.setSpeed = function(count) {
-            delayCount = (count >= 0) ? (count < 500) ? count : 500 : 0;
+            delayCount = (count >= 1) ? (count < 2000) ? count : 2000 : 1;
         };
         
         /**
@@ -308,7 +308,7 @@ export class cspInterpreter {
                             }
                             // Otherwise, wait
                             count ++;
-                        }, 50); // 50ms intervals
+                        }, 1); // 50ms intervals
                     });
                 })();
             }

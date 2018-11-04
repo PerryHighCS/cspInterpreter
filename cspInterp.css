@@ -7,39 +7,53 @@ ul.programStack {
     margin: 0;
     padding: 0;
     list-style-type: none;
+    border: 1px solid black;
+    border-top: 0;
 }
 
 .programStack h3 {
     font-size: 1.1em;
     font-weight: 700;
+    width: 100%;
+    border-bottom: 1px solid black;
 }
 
 ul.programStack > li {
-    border: 1px solid black;
-    border-top: 0;
     padding: 5px;
 }
 
 ul.programStack dt {
-    font-size: 1em;
+    font-size: 1em; 
     font-weight: 500;
     grid-column-start: 1;
+    padding: 5px 0 5px 5px;
 }
 
 ul.programStack dd {
     grid-column-start: 2;
+    padding: 5px 5px 0 5px;
+    margin-bottom: 0;
 }
 
-ul.programStack dt:after {
+ul.programStack dd:before {
     content: "\a0\2192\a0";
-    float: right;
 }
 
 ul.programStack dl {
     width: 100%;
-    padding: 5px;
+    padding: 0px;
     margin: 0;
     display: grid;
     grid-template-columns: max-content auto;
-    line-height: 1em;
+    line-height: 1.1em;
+    background-color: #f0f0f0;
+}
+
+.programStack dl dt:nth-last-of-type(odd) {
+    background-color: #ddd;
+}
+
+
+.programStack dl dd:nth-last-of-type(odd) {
+    background-color: #ddd;
 }
