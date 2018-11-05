@@ -3,18 +3,55 @@ import {cspParser} from './cspParser.js'
 const cspBuiltins = 
     [['functions', new Map([
                 ['DISPLAY', (params)=>{console.log(...params);}],
-                ['INPUT', (params)=>{let got = window.prompt(...params);
-                                    if (got === null) {
-                                        throw "CANCELED";
-                                    }
-                                    else if (!isNaN(Number(got))) {
-                                        return Number(got);
-                                    }
-                                    return got;
-                                    
-                        }],
-                ['RANDOM', (params)=>{let range = params[1] - params[0] + 1;
-                                      return Math.floor(Math.random() * range + params[0]);}]
+                ['INPUT', (params)=>{
+                        let got = window.prompt(...params);
+                        if (got === null) {
+                            throw "CANCELED";
+                        }
+                        else if (!isNaN(Number(got))) {
+                            return Number(got);
+                        }
+                        return got;
+
+                    }],
+                ['RANDOM', (params)=>{
+                        if (isNaN(params[0]) || isNan(params[1]))
+                            throw "RANDOM requires two numbers to specify a range to choose from.";
+                        let range = params[1] - params[0] + 1;
+                        return Math.floor(Math.random() * range + params[0]);
+                    }],
+                ['LENGTH', (params)=>{
+                        if (!params[0] || !Array.isArray(params[0]))
+                            throw "LENGTH requires a list to inspect.";
+                        return params[0].length;
+                    }],
+                ['APPEND', (params)=>{
+                        if (!params[0] || !Array.isArray(params[0]))
+                            throw "APPEND requires a list to append to.";
+                        if (typeof params[1] === 'undefined')
+                            throw "Nothing to APPEND.";
+                        params[0].push(params[1]);
+                    }],
+                ['INSERT', (params)=>{
+                        if (!params[0] || !Array.isArray(params[0]))
+                            throw "INSERT requires a list to insert into.";
+                        if (typeof params[1] === 'undefined' || isNaN(params[1]))
+                            throw "INSERT requires an index to insert at.";
+                        if (params[1] < 1 || params[1] > params[0].length + 1)
+                            throw "INSERT requires a valid location to insert at.";
+                        if (typeof params[2] === 'undefined')
+                            throw "INSERT requires something to insert.";
+                        params[0].splice(params[1] - 1, 0, params[2]);
+                    }],
+                ['REMOVE', (params)=>{
+                        if (!params[0] || !Array.isArray(params[0]))
+                            throw "REMOVE requires a list to remove from.";
+                        if (params[1] < 1 || params[1] > params[0].length + 1)
+                            throw "REMOVE requires a valid location to remove from.";
+                        if (typeof params[1] === 'undefined' || isNaN(params[1]))
+                            throw "REMOVE requires an index to remove.";
+                        params[0].splice(params[1] - 1, 1);
+                    }]
                 ])]
 ];
 
