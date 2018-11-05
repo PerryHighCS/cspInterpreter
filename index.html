@@ -147,7 +147,7 @@ function run(singleStep) {
     zombie.setSpeed(runspeed.value);
     zombie.go(singleStep)
             .then(() => $(stopbutton).focus())
-            .catch((e) => alert(e));
+            .catch((e) => {alert(e); $(stopbutton).focus()});
     
     return false;
 }

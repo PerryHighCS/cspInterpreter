@@ -216,14 +216,19 @@ export class cspInterpreter {
                     await doStatement(statement);
                 }
                 catch(e) {
+                    await delay(statement);
                     if (e === 'STOPPED') {
                         stopped = true;
+                        isRunning = false;
                         return;
                     }
+                    stopped = true;
+                    isRunning = false;
                     throw e;
                 };
             }
             
+            updateStack();  // update the display
             isRunning = false;
         };
         
