@@ -105,7 +105,7 @@ PROCEDURE go(times, dir) {
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
         <script type="module">
 import {cspInterpreter} from "./js/cspInterpreter.js"
-import {zombieGraphics} from "./js/zGraphics.js"
+import {initZombie} from "./js/zGraphics.js"
 import {RobotWorld} from "./js/robotWorld.js"
 
 let source = document.getElementById("code");
@@ -125,9 +125,14 @@ let editor = CodeMirror.fromTextArea(source, {
 
 editor.setSize(null,height);
 
-let world = new RobotWorld(canvas);
+let graphics;
 
 let interp = null;
+let zombie = null;
+
+let world = new RobotWorld(canvas);
+zombie = initZombie(world, 0, 0, 0);
+world.redraw();
 
 function run(singleStep) {
     let code = editor.getValue();
@@ -146,14 +151,19 @@ function run(singleStep) {
     
     $(runbutton).focus();
     
-    interp = new cspInterpreter(code, [zombieGraphics], consoledisp, canvas,
+    if (world != null) {
+        world.end();
+    }
+            
+    world = new RobotWorld(canvas);
+    zombie = initZombie(world, 0, 0, 0);
+    interp = new cspInterpreter(code, [zombie.getGraphicsCommands()], consoledisp, canvas,
                                 stackdisp, editor);
-                                
+
     interp.setSpeed(runspeed.value);
     interp.go(singleStep)
             .then(() => $(stopbutton).focus())
             .catch((e) => {alert(e); $(stopbutton).focus()});
-    
     return false;
 }
 

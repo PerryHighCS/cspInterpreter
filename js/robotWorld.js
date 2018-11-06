@@ -1,6 +1,5 @@
 export class RobotWorld {
     constructor(canvas) {
-        
         const tileSize = 64;
         
         let cWidth = canvas.width;
@@ -15,8 +14,14 @@ export class RobotWorld {
         let offsetX = (cWidth - worldWidth) / 2;
         let offsetY = (cHeight - worldHeight) / 2;
         
+        let objects = new Map();
+        
+        let sprites = [];
+                
         this.redraw = function(){
             let ctx = canvas.getContext("2d");
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.lineWidth = 1;
             
             for (let i = 0; i <= tilesW; i ++) {
@@ -30,11 +35,36 @@ export class RobotWorld {
                 ctx.stroke();
             }
             
+            objects.forEach((obj)=>{
+                let x = obj.x * tileSize + offsetX;
+                let y = obj.y * tileSize + offsetY;
+                
+                obj.obj.getSprite().then((sprite) => {
+                    ctx.drawImage(sprite, x, y);
+                });
+            });
         };
         
+        this.getWidth = function() {
+            return tilesW;
+        };
         
-        setInterval(this.redraw, 300);
+        this.getHeight = function() {
+            return tilesH;
+        };
+                
+        this.removeObject = function(obj) {
+            objects.delete(obj);
+        };
+        
+        this.setPosition = function(obj, x, y) {
+            objects.set(obj, {obj: obj, x: x, y: y});
+        };
+        
+        this.end = function() {
+            clearInterval(timer);
+        };
+        
+        let timer = setInterval(this.redraw, 200);
     }
-    
-    
 }
