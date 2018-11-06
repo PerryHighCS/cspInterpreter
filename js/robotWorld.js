@@ -1,7 +1,7 @@
 export class RobotWorld {
     constructor(canvas) {
         
-        const tileSize = 32;
+        const tileSize = 64;
         
         let cWidth = canvas.width;
         let cHeight = canvas.height;
