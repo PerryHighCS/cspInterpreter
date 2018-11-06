@@ -22,6 +22,16 @@ ul.programStack > li {
     padding: 5px;
 }
 
+ul.programStack > li:not(:first-of-type):not(:last-of-type) {
+    background: repeating-linear-gradient(
+        45deg,
+        #aaa,
+        #aaa 10px,
+        #ccc 10px,
+        #ccc 20px
+    );
+}
+
 ul.programStack dt {
     font-size: 1em; 
     font-weight: 500;

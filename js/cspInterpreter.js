@@ -116,7 +116,11 @@ export class cspInterpreter {
         let stackList = $("<ul>");
         stackList.addClass("programStack");
         
+        let caption = $("<h4>");
+        caption.text("Call Stack:");
+        
         $(stackcontainer).empty();
+        $(stackcontainer).append(caption);
         $(stackcontainer).append(stackList);
         
         // Parse the source code provided
@@ -216,12 +220,7 @@ export class cspInterpreter {
                     await doStatement(statement);
                 }
                 catch(e) {
-                    await delay(statement);
-                    if (e === 'STOPPED') {
-                        stopped = true;
-                        isRunning = false;
-                        return;
-                    }
+                    updateStack();  // update the display
                     stopped = true;
                     isRunning = false;
                     throw e;
@@ -936,12 +935,12 @@ export class cspInterpreter {
                 let frame = stack[i];
                 let frameEl = frame.get('frameElement');
                 
-                if (typeof frameEl === 'undefined') {
+                if (typeof frameEl === 'undefined') {                    
                     frameEl = $("<li>");
                     frame.set('frameElement', frameEl);
                     stackList.prepend(frameEl);
                     
-                    let caption = $("<h3>");
+                    caption = $("<h3>");
                     caption.text(stack[i].get('function'));
                     frameEl.append(caption);
                     
