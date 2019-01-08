@@ -151,6 +151,8 @@ export class cspInterpreter {
             mod: doOperation,
             div: doOperation,
             mul: doOperation,
+            AND: doOperation,
+            OR: doOperation,
             negate: doNegate,
             relation: doRelation,
             identifier: getVarVal,
@@ -745,7 +747,6 @@ export class cspInterpreter {
         }
 
         async function doOperation(node) {
-
             const lval = await evaluate(node.args[0]);
             const rval = await evaluate(node.args[1]);
 
@@ -759,16 +760,20 @@ export class cspInterpreter {
                 case 'mul':
                     return lval * rval;
                 case 'div':
-                    return lval / rval;
+                    return lval / rval;                    
+                case 'AND':
+                    return lval && rval;
+                case 'OR':
+                    return lval || rval;
             }
         }
-
+        
         async function doNegate(node) {
             return await -(evaluate(node.args));
         }
 
         async function doNot(node) {
-            return await !(evaluate(node.args));
+            return ! await (evaluate(node.args));
         }
 
         async function doRelation(node) {
@@ -781,6 +786,8 @@ export class cspInterpreter {
                     return lval == rval;
                 case '!=':
                     return lval != rval;
+                case '>':
+                    return lval > rval;
                 case '<':
                     return lval < rval;
                 case '<=':
