@@ -61,7 +61,7 @@ class ReturnValue {
     }
 }
 
-export class cspInterpreter {
+export class CspInterpreter {
     /**
      * Create an interpreter to parse and run an APCSP pseudocode program
      * 
@@ -193,7 +193,7 @@ export class cspInterpreter {
             
             // Build up the initial stack
             stack = [];
-            stack[0] = mergeGlobals(cspBuiltins, ...plugins);
+            stack[0] = CspInterpreter.mergeGlobals(cspBuiltins, ...plugins);
             mapFunctions(parsed.functions);
             stack[0].set('function', ['Global']);
             
@@ -222,6 +222,7 @@ export class cspInterpreter {
                     await doStatement(statement);
                 }
                 catch(e) {
+                    await delay(statement);
                     updateStack();  // update the display
                     stopped = true;
                     isRunning = false;
@@ -233,33 +234,6 @@ export class cspInterpreter {
             isRunning = false;
         };
         
-        /**
-         * Add global function and variables to the bottom stack frame
-         * 
-         * @param {type} maps
-         * @returns {Function.mergeGlobals.theMap}
-         */
-        function mergeGlobals(...maps) {
-            const theMap = new Map();
-
-            for (const map of maps) {
-                for (const [k, v] of map) {
-                    let m;
-                    if (theMap.has(k)) {
-                        m = theMap.get(k);
-                    } else {
-                        m = new Map(); 
-                        theMap.set(k, m);
-                    }
-                    for (const [k2, v2] of v) {
-                        m.set(k2, v2);
-                    }
-                }
-            }
-
-            return theMap;
-        }
-
         /**
          * Determine the current run state of this interpreter
          * @returns {String} "error" - code error, "step" - single stepping, 
@@ -1017,4 +991,49 @@ export class cspInterpreter {
             });
         }
     }
+    
+    /**
+     * Add global function and variables to the bottom stack frame
+     * 
+     * @param {type} maps
+     * @returns {Map}
+     */
+    static mergeGlobals(...maps) {
+        const theMap = new Map();
+
+        for (const map of maps) {
+            for (const [k, v] of map) {
+                let m;
+                if (theMap.has(k)) {
+                    m = theMap.get(k);
+                } else {
+                    m = new Map(); 
+                    theMap.set(k, m);
+                }
+                for (const [k2, v2] of v) {
+                    m.set(k2, v2);
+                }
+            }
+        }
+        
+        return theMap;
+    }
+    
+    static keyWords(plugins) {        
+        const theMap = CspInterpreter.mergeGlobals(cspBuiltins, ...plugins);
+
+        const keyWords = [];
+
+        
+        theMap.forEach((mapping, type)=>{
+            mapping.forEach((v, name)=> {
+                if (type === 'vars')
+                    keyWords.push(name);
+                else
+                    keyWords.push(name + "()");
+            });
+        });
+        
+        return keyWords;
+    }        
 }

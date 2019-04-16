@@ -24,7 +24,7 @@
                     <div class="clearfix">
                         <div class="btn-group float-right">
                             <span style="font-size: 30px;">🐢
-                            <input type="range" min="0" max="200" value="0" id="runSpeed" style="direction: rtl;">
+                            <input type="range" min="0" max="200" value="25" id="runSpeed" style="direction: rtl;">
                             🐇</span>
                             <button type="button" id="runButton" class="btn btn-primary">Run</button>
                             <button type="button" id="stepButton" class="btn btn-secondary">Step</button>
@@ -55,9 +55,11 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
         <script type="module">
-import {cspInterpreter} from "./js/cspInterpreter.js"
+import {CspInterpreter} from "./js/cspInterpreter.js"
 import {Zombie} from "./js/zGraphics.js"   // Use zombie graphics for robot programming
 import {RobotWorld} from "./js/robotWorld.js" 
+
+let plugins = [Zombie.getGraphicsCommands()];
 
 let source = document.getElementById("code");
 let canvas = document.getElementById("worldDisplay");
@@ -76,72 +78,52 @@ let editor = CodeMirror.fromTextArea(source, {
 });
 editor.setSize(null,height);
 
+keywordButtons(...plugins);
+
+canvas.addEventListener('click', reinit);
+
 let interp = null;
 let zombie = null;
 
 let spec = {
     width: 6,
     height: 6,
-    objects: [{type: "obstacle", x: 3, y: 4},
-              {type: "obstacle", x: 0, y: 1}],
-    robot: {type: Zombie, x: 0, y: 0, dir: 1},
-    script: 
-`# a test program
-a <- [(10 MOD 3), (4 * 2 - 1)]
-DISPLAY(a) // with comments!!
-b <- a[1]
-a[1] <- a[2]
-a[2] <- b
-DISPLAY(a) // with comments!!
-
-FOR EACH num IN a {
-    DISPLAY(num)
+    objects: [{type: "Obstacle", x: 2, y: 5},
+              {type: "Obstacle", x: 1, y: 1}],
+    robot: {x: 0, y: 5, dir: 0}
 }
 
-DISPLAY("How many times to repeat?")
-times <- INPUT()
+let world = init(spec);
 
-DISPLAY(times)
-DISPLAY(go(times, right))
-DISPLAY("DONE!\\n")
-
-PROCEDURE go(times, dir) {
-    count <- 0
-    REPEAT times / 2 TIMES {
-        MOVE_FORWARD()
-        IF (dir = right) {
-            ROTATE_RIGHT()
-        }
-        ELSE {
-            ROTATE_LEFT()
-        }
-        count <- count + 1
+function init(spec) {
+    if (spec === null) {
+        $(canvas).hide();
+        return null;
     }
+    
+    let w = new RobotWorld(canvas, spec, Zombie);   // Initialize a robot world
+    w.initObjects();
+    w.redraw();                                     // Draw the world
 
-    i <- 0
-    REPEAT UNTIL (i >= times / 2) {
-        MOVE_FORWARD()
-        IF (NOT dir = right) {
-            ROTATE_RIGHT()
-        }
-        ELSE {
-            ROTATE_LEFT()
-        }
-        count <- count + 1
-        i <- i + 1
-    }
-
-    DISPLAY(count)
-    RETURN (count)
-} 
-`
+    if (spec.script !== undefined)
+        editor.setValue(spec.script);
+        
+    return w;
 }
 
-let world = new RobotWorld(canvas, spec);   // Initialize a robot world
-world.initObjects();
-world.redraw();                             // Draw the world
-
-editor.setValue(spec.script);
+function reinit() {
+    if (interp !== null) {
+        if (interp.runMode() == "stop" || interp.runMode() == "end") {
+            world = init(spec);
+        }
+        
+        if (interp.runMode() == "end") {
+            interp.stop();
+        }
+    }
+    
+    return false;
+}
 
 function run(singleStep) {
     let code = editor.getValue();
@@ -164,13 +146,13 @@ function run(singleStep) {
         world.end();
     }
             
-    world = new RobotWorld(canvas, spec);
+    world = new RobotWorld(canvas, spec, Zombie);
     world.initObjects();
     world.start();
     world.redraw();
     
     try {
-        interp = new cspInterpreter(code, [Zombie.getGraphicsCommands()], consoledisp, canvas,
+        interp = new CspInterpreter(code, plugins, consoledisp, canvas,
                                     stackdisp, editor);
     }
     catch (e) {
@@ -231,6 +213,81 @@ function clearMarks() {
     let marks = editor.getAllMarks();
     
     marks.forEach(mark => mark.clear());
+}
+
+function saveAs(data, filename, filetype) {
+    let file = new Blob([data], {type: filetype});
+    
+    let a = document.createElement("a"),
+            url = URL.createObjectURL(file);
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);  
+    }, 0); 
+}
+
+$(window).bind('keydown', function(event) {
+    if (event.ctrlKey || event.metaKey) {
+        switch (String.fromCharCode(event.which).toLowerCase()) {
+        case 's':
+            event.preventDefault();
+            
+            let spec = {};
+            
+            spec.width = world.getWidth();
+            spec.height = world.getHeight();
+            spec.objects = world.getObjects();
+            spec.robot = world.getRobot();
+            spec.script = editor.getValue();            
+            
+            saveAs(JSON.stringify(spec, null, 2), "scenario.csp", "csp");
+                    
+            break;
+            
+        case 'o':
+            event.preventDefault();            
+            $(fileIn).trigger('click');            
+            break;
+        }
+    }
+});
+
+let fileIn = $('<input type="file" accept=".csp">')[0];
+
+fileIn.addEventListener('change', loadFile, false);
+
+console.log(fileIn);
+
+function loadFile(e) {
+    var file = e.target.files[0];
+    
+    if (!file) {
+        return;
+    }
+    
+    let reader = new FileReader();
+    reader.onload = (e) => {
+        let contents = JSON.parse(e.target.result);
+        
+        spec = contents;
+        
+        init(spec);
+        
+    };
+    
+    reader.readAsText(file)
+    
+    e.target.value = null;
+}
+
+function keywordButtons(...plugins) {
+    let keywords = CspInterpreter.keyWords(plugins);
+    
+    console.log(keywords);
 }
         </script>
 

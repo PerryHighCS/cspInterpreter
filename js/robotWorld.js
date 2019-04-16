@@ -7,7 +7,7 @@ export class RobotWorld {
      * @param {Canvas} canvas the canvas to use for displaying the world
      * @param {Map} spec the definition of the world
      */
-    constructor(canvas, spec) {
+    constructor(canvas, spec, robotType) {
         const tileSize = 64;
         
         // If the width/height haven't been set, calculate the maximum unscaled
@@ -166,6 +166,8 @@ export class RobotWorld {
          * Empty out the world and initialize all spec'ed objects
          */
         this.initObjects = function() {
+            this.robot = null;
+            
             objects = new Map();
             
             if (spec.objects !== undefined) {
@@ -177,12 +179,47 @@ export class RobotWorld {
                 let y = spec.robot.y ? spec.robot.y : 0;
                 let dir = spec.robot.dir ? spec.robot.dir : 0;
                 
-                let zombie = new spec.robot.type(this, x, y, dir);
+                this.robot = new robotType(this, x, y, dir);
             }
         };
         
+        this.getObjects = function() {
+            let objSpec = [];
+            
+            objects.forEach((obj) => {
+                if (obj.obj !== this.robot) {
+                    let o = {};
+
+                    o.type = obj.obj.constructor.name;
+                    o.x = obj.x;
+                    o.y = obj.y;
+                    o.dir = obj.dir;
+
+                    objSpec.push(o);
+                }
+            }, this);
+            
+            return objSpec;
+        };
+        
+        this.getRobot = function() {
+            if (this.robot === undefined) {
+                return undefined;
+            }
+            
+            let robotSpec = {};
+            
+            let robot = objects.get(this.robot);
+            
+            robotSpec.x = robot.x;
+            robotSpec.y = robot.y;
+            robotSpec.dir = robot.obj.getDir();
+            
+            return robotSpec;
+        };
+        
         let buildSpecObject = function(objSpec, world) {
-            switch (objSpec.type) {
+            switch (objSpec.type.toLowerCase()) {
             case 'obstacle':
                 let object = new Obstacle();
                 world.setPosition(object, objSpec.x, objSpec.y);

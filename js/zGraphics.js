@@ -25,7 +25,8 @@ export class Zombie {
         zombie = this;
         
         // Add the zombie to the world
-        world.setPosition(this, x, y);
+        if (world)
+            world.setPosition(this, x, y);
         
         /*******************************
          * Define the zombie commands
@@ -153,7 +154,7 @@ export class Zombie {
             else {
                 // If it is in bounds, the zombie can move there only if it is
                 // vacant.
-                return world.objectsAt(x, y).length === 0;
+                return world.objectsAt(lookx, looky).length === 0;
             }
         };
         
@@ -193,6 +194,14 @@ export class Zombie {
                 return sprites[dir][framenum];
             }
         };
+        
+        /**
+         * Get the direction this zombie is facing
+         * @returns {integer} dir 0 = right, 1 = down, 2 = left, 3 = up
+         */
+        this.getDir = function() {
+            return dir;
+        };
     }
     
     /**
@@ -203,10 +212,10 @@ export class Zombie {
     static getGraphicsCommands() {
         return [
             ['functions', new Map([
-                ['MOVE_FORWARD', zombie.forward],
-                ['ROTATE_LEFT', zombie.left],
-                ['ROTATE_RIGHT', zombie.right],
-                ['CAN_MOVE', zombie.canMove]
+                ['MOVE_FORWARD', ()=>zombie.forward()],
+                ['ROTATE_LEFT', ()=>zombie.left()],
+                ['ROTATE_RIGHT', ()=>zombie.right()],
+                ['CAN_MOVE', (params)=>zombie.canMove(params[0])]
                 ])],
             ['vars', new Map([
                 ['right', "right"],
