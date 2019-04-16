@@ -1,20 +1,20 @@
+/* global Promise */
+
 import {RobotWorld} from "./robotWorld.js"
 
 let sprites = null;
-
-export function initZombie(rw, x, y, dir) {
-    
-    if (sprites === null) {
-        sprites = loadSprites();
-    }
-    
-    let zombie = new Zombie(rw, x, y, dir);
-    
-    return zombie;
-}
+let zombie = null;
  
-class Zombie {
+export class Zombie {    
     constructor (world, initX, initY, initDir) {
+        
+        // Initialize the zombie sprites
+        if (sprites === null) {
+            sprites = loadSprites();
+        }
+    
+        // Initialize the zombie's position and direction, with defaults if
+        // necessary
         let x = initX ? initX : 0;
         let y = initY ? initY : 0;
         let dir = initDir ? initDir : 0;
@@ -22,12 +22,27 @@ class Zombie {
         let crashed = false;
         let self = this;
         
+        zombie = this;
+        
+        // Add the zombie to the world
         world.setPosition(this, x, y);
         
+        /*******************************
+         * Define the zombie commands
+         *******************************/
+        
+        /**
+         * Move the zombie forward
+         * 
+         * @throws {"CRASH!"} if the zombie hits the edge of the world, or an
+         *                    obstacle
+         */
         this.forward = function () {
             let nextx = x;
             let nexty = y;
             
+            // Determine the next position based on the direction the zombie
+            // is facing
             switch (dir) {
             case 0:
                 nextx = x + 1;
@@ -43,36 +58,59 @@ class Zombie {
                 break;                    
             }
             
+            // Make sure the next position is valid
             if ((nextx < 0 || nextx >= world.getWidth()) ||
                 (nexty < 0 || nexty >= world.getHeight())) {
+                // If it is not, crash the zombie
                     crashed = true;
                     world.redraw();
                     throw "CRASH!";
             }
             else {
+                // If it is, move to the new position
                 x = nextx;
                 y = nexty;
 
                 world.setPosition(self, x, y);
+                
+                // If there are other objects there, crash the zombie
+                if (world.objectsAt(x, y).length > 1) {
+                    crashed = true;
+                    world.redraw();
+                    throw "CRASH!";
+                }
             }
             
+            // Update the display
             world.redraw();
         };
 
+        /**
+         * Turn the zombie towards its left
+         */
         this.left = function () {
             dir = (4 + dir - 1) % 4;
             world.redraw();
         };
 
+        /**
+         * Turn the zombie towards its right
+         */
         this.right = function () {
             dir = (dir + 1) % 4;
             world.redraw();
         };
 
+        /**
+         * Determine if the zombie can move in a given direction: "forward", 
+         * "backward", "left", "right".
+         * 
+         * @param {String} checkDir the direction to look
+         */
         this.canMove = function (checkDir) {
             let look = dir;
             
-            switch (checkDir) {
+            switch (checkDir.toLowerCase()) {
                 case "forward":
                     break;                    
                 case "backward":
@@ -86,8 +124,8 @@ class Zombie {
                     break;
             }
             
-            
-            
+            // convert the direction to look into an x,y coordinate pair
+            // for the cell to look in
             let lookx = x;
             let looky = y;
             
@@ -106,15 +144,25 @@ class Zombie {
                 break;                    
             }
             
+            // If the position is out of bounds
             if ((lookx < 0 || lookx >= world.getWidth()) ||
                 (looky < 0 || looky >= world.getHeight())) {
+                // The zombie can't move there.
                 return false;
             }
             else {
-                return true;
+                // If it is in bounds, the zombie can move there only if it is
+                // vacant.
+                return world.objectsAt(x, y).length === 0;
             }
         };
         
+        /**
+         * Restart the zombie at a given position, facing a given direction
+         * @param {integer} newx
+         * @param {integer} newy
+         * @param {integer} newdir (0-3)
+         */
         this.reset = function(newx, newy, newdir) {
             x = newx ? newx : initX;
             y = newy ? newy : initY;
@@ -123,28 +171,42 @@ class Zombie {
             world.redraw();
         };
         
+        /**
+         * Get the current sprite for this zombie
+         * @returns {Image}
+         */
         this.getSprite = async function() {
+            // If the sprites are not yet loaded, wait for them to load
             if (sprites instanceof Promise) {
                 sprites = await sprites;
             }
             
-            if (crashed) {
-                return sprites[4];
+            // Check the zombie's condition
+            if (crashed) {                
+                return sprites[4]; // return the crashed sprite
             }
             else {
+                // If the zombie is ok, determine which frame should be current
                 framenum = (framenum + 1) % 4;
+                
+                // return the animated zombie facing in the current direction
                 return sprites[dir][framenum];
             }
         };
     }
     
-    getGraphicsCommands() {
+    /**
+     * Get the valid CSP commands for controlling the zombie
+     * 
+     * @returns {Array}
+     */
+    static getGraphicsCommands() {
         return [
             ['functions', new Map([
-                ['MOVE_FORWARD', this.forward],
-                ['ROTATE_LEFT', this.left],
-                ['ROTATE_RIGHT', this.right],
-                ['CAN_MOVE', this.canMove]
+                ['MOVE_FORWARD', zombie.forward],
+                ['ROTATE_LEFT', zombie.left],
+                ['ROTATE_RIGHT', zombie.right],
+                ['CAN_MOVE', zombie.canMove]
                 ])],
             ['vars', new Map([
                 ['right', "right"],
@@ -168,8 +230,8 @@ async function loadSprites() {
     function load(url) {
         return new Promise((resolve) => {
             let img = new Image();
-            img.onload = resolve(img);
-            img.onerror = resolve(img);
+            img.onload = ()=>resolve(img);
+            img.onerror = ()=>resolve(img);
             img.src = url;
         });
     }

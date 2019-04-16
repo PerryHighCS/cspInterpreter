@@ -105,8 +105,8 @@ PROCEDURE go(times, dir) {
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
         <script type="module">
 import {cspInterpreter} from "./js/cspInterpreter.js"
-import {initZombie} from "./js/zGraphics.js"
-import {RobotWorld} from "./js/robotWorld.js"
+import {Zombie} from "./js/zGraphics.js"   // Use zombie graphics for robot programming
+import {RobotWorld} from "./js/robotWorld.js" 
 
 let source = document.getElementById("code");
 let canvas = document.getElementById("worldDisplay");
@@ -117,22 +117,28 @@ let consoledisp = document.getElementById("consoleDisplay");
 let stackdisp = document.getElementById("stackDisplay");
 let runspeed = document.getElementById("runSpeed");
 
+// Convert the code display to a CodeMirror editor
 let height = $(source).height();
 let editor = CodeMirror.fromTextArea(source, {
   lineNumbers: true,
   matchBrackets: true,
 });
-
 editor.setSize(null,height);
-
-let graphics;
 
 let interp = null;
 let zombie = null;
 
-let world = new RobotWorld(canvas);
-zombie = initZombie(world, 0, 0, 0);
-world.redraw();
+let spec = {
+    width: 6,
+    height: 6,
+    objects: [{type: "obstacle", x: 3, y: 4},
+              {type: "obstacle", x: 0, y: 1}],
+    robot: {type: Zombie, x: 0, y: 0, dir: 1}
+}
+
+let world = new RobotWorld(canvas, spec);   // Initialize a robot world
+world.initObjects();
+world.redraw();                             // Draw the world
 
 function run(singleStep) {
     let code = editor.getValue();
@@ -155,21 +161,25 @@ function run(singleStep) {
         world.end();
     }
             
-    world = new RobotWorld(canvas);
-    zombie = initZombie(world, 0, 0, 0);
-    interp = new cspInterpreter(code, [zombie.getGraphicsCommands()], consoledisp, canvas,
+    world = new RobotWorld(canvas, spec);
+    world.initObjects();
+    world.start();
+    world.redraw();
+    
+    interp = new cspInterpreter(code, [Zombie.getGraphicsCommands()], consoledisp, canvas,
                                 stackdisp, editor);
 
     interp.setSpeed(runspeed.value);
     interp.go(singleStep)
-            .then(() => $(stopbutton).focus())
-            .catch((e) => {alert(e); $(stopbutton).focus()});
+            .then(() => {$(stopbutton).focus(); world.end();})
+            .catch((e) => {alert(e); $(stopbutton).focus(); world.end();});
     return false;
 }
 
 function stop() {
     if (interp !== null) {
         interp.stop();
+        world.end();
     }
 }
 
