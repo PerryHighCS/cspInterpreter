@@ -33,56 +33,7 @@
                     </div>
                     
                     <div style="border: 1px solid">
-                        <textarea id="code" style="width: 100%; height: 600px; font-family: monospace">
-# a test program
-a <- [(10 MOD 3), (4 * 2 - 1)]
-DISPLAY(a) // with comments!!
-b <- a[1]
-a[1] <- a[2]
-a[2] <- b
-DISPLAY(a) // with comments!!
-
-FOR EACH num IN a {
-    DISPLAY(num)
-}
-
-DISPLAY("How many times to repeat?")
-times <- INPUT()
-
-DISPLAY(times)
-DISPLAY(go(times, right))
-DISPLAY("DONE!\n")
-
-PROCEDURE go(times, dir) {
-    count <- 0
-    REPEAT times / 2 TIMES {
-        MOVE_FORWARD()
-        IF (dir = right) {
-            ROTATE_RIGHT()
-        }
-        ELSE {
-            ROTATE_LEFT()
-        }
-        count <- count + 1
-    }
-
-    i <- 0
-    REPEAT UNTIL (i >= times / 2) {
-        MOVE_FORWARD()
-        IF (NOT dir = right) {
-            ROTATE_RIGHT()
-        }
-        ELSE {
-            ROTATE_LEFT()
-        }
-        count <- count + 1
-        i <- i + 1
-    }
-
-    DISPLAY(count)
-    RETURN (count)
-} 
-                        </textarea>
+                        <textarea id="code" style="width: 100%; height: 600px; font-family: monospace"></textarea>
                     </div>
                 </div>
                 <div class="col col-md-6">
@@ -133,12 +84,64 @@ let spec = {
     height: 6,
     objects: [{type: "obstacle", x: 3, y: 4},
               {type: "obstacle", x: 0, y: 1}],
-    robot: {type: Zombie, x: 0, y: 0, dir: 1}
+    robot: {type: Zombie, x: 0, y: 0, dir: 1},
+    script: 
+`# a test program
+a <- [(10 MOD 3), (4 * 2 - 1)]
+DISPLAY(a) // with comments!!
+b <- a[1]
+a[1] <- a[2]
+a[2] <- b
+DISPLAY(a) // with comments!!
+
+FOR EACH num IN a {
+    DISPLAY(num)
+}
+
+DISPLAY("How many times to repeat?")
+times <- INPUT()
+
+DISPLAY(times)
+DISPLAY(go(times, right))
+DISPLAY("DONE!\\n")
+
+PROCEDURE go(times, dir) {
+    count <- 0
+    REPEAT times / 2 TIMES {
+        MOVE_FORWARD()
+        IF (dir = right) {
+            ROTATE_RIGHT()
+        }
+        ELSE {
+            ROTATE_LEFT()
+        }
+        count <- count + 1
+    }
+
+    i <- 0
+    REPEAT UNTIL (i >= times / 2) {
+        MOVE_FORWARD()
+        IF (NOT dir = right) {
+            ROTATE_RIGHT()
+        }
+        ELSE {
+            ROTATE_LEFT()
+        }
+        count <- count + 1
+        i <- i + 1
+    }
+
+    DISPLAY(count)
+    RETURN (count)
+} 
+`
 }
 
 let world = new RobotWorld(canvas, spec);   // Initialize a robot world
 world.initObjects();
 world.redraw();                             // Draw the world
+
+editor.setValue(spec.script);
 
 function run(singleStep) {
     let code = editor.getValue();
@@ -166,9 +169,17 @@ function run(singleStep) {
     world.start();
     world.redraw();
     
-    interp = new cspInterpreter(code, [Zombie.getGraphicsCommands()], consoledisp, canvas,
-                                stackdisp, editor);
-
+    try {
+        interp = new cspInterpreter(code, [Zombie.getGraphicsCommands()], consoledisp, canvas,
+                                    stackdisp, editor);
+    }
+    catch (e) {
+        alert(e);
+        $(stopbutton).focus(); 
+        world.end();
+        return false;
+    }
+    
     interp.setSpeed(runspeed.value);
     interp.go(singleStep)
             .then(() => {$(stopbutton).focus(); world.end();})
