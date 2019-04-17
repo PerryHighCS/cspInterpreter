@@ -67,3 +67,7 @@ ul.programStack dl {
 .programStack dl dd:nth-last-of-type(odd) {
     background-color: #ddd;
 }
+
+#consoleDisplay {
+    padding: 2px;
+}
