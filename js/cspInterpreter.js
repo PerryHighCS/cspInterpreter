@@ -1022,9 +1022,14 @@ export class CspInterpreter {
     static keyWords(plugins) {        
         const theMap = CspInterpreter.mergeGlobals(cspBuiltins, ...plugins);
 
-        const keyWords = [];
+        const keyWords = ["<-", 
+            ["IF", "IF ( )\n{\n\n}"], ["ELSE", "ELSE\n{\n\n}"],
+            "NOT", "AND", "OR", 
+            ["REPEAT TIMES", "REPEAT _ TIMES\n{\n\n}"], 
+            ["REPEAT UNTIL", "REPEAT UNTIL ( )\n{\n\n}"],
+            ["FOR EACH", "FOR EACH item IN list\n{\n\n}"],
+            ["PROCEDURE", "PROCEDURE name ( )\n{\n\n}"]];
 
-        
         theMap.forEach((mapping, type)=>{
             mapping.forEach((v, name)=> {
                 if (type === 'vars')

@@ -16,16 +16,18 @@
         <link rel="stylesheet" href="./cspInterp.css">
 
     </head>
-    <body >
+    <body>
         <div class="container-fluid">
             <h2>cspInterpreter</h2>
             <div class="row">
+                <div class="col keywords" style="max-width: min-content; font-size: smaller;">                    
+                </div>
                 <div class="col">
                     <div class="clearfix">
                         <div class="btn-group float-right">
-                            <span style="font-size: 30px;">🐢
+                            🐢&nbsp;
                             <input type="range" min="0" max="200" value="25" id="runSpeed" style="direction: rtl;">
-                            🐇</span>
+                            &nbsp;🐇
                             <button type="button" id="runButton" class="btn btn-primary">Run</button>
                             <button type="button" id="stepButton" class="btn btn-secondary">Step</button>
                             <button type="button" id="stopButton" class="btn btn-danger">Stop</button>
@@ -45,7 +47,7 @@
                             Output:
                             <pre id="consoleDisplay" style="width: 400px; height: 200px; overflow-y: auto; white-space: pre-wrap; background-color: lightgray;"></pre>
                         </div>
-                        <div id="stackDisplay" class="col">
+                        <div id="stackDisplay" class="col" style="overflow: auto;">
                         </div>
                     </div>
                 </div>
@@ -286,8 +288,34 @@ function loadFile(e) {
 
 function keywordButtons(...plugins) {
     let keywords = CspInterpreter.keyWords(plugins);
+    let bar = $('.keywords');
     
-    console.log(keywords);
+    
+    for (let i in keywords) {
+        let btn = $('<button>');
+        btn.width('100%');
+        
+        let word = keywords[i];
+        
+        if (word instanceof Array) {
+            btn.val(word[1]);
+            btn.text(word[0]);
+        }
+        else {
+            btn.val(word);
+            btn.text(word);
+        }
+        
+        btn.click(() => {
+            let doc = editor.getDoc();
+            let cursor = doc.getCursor();
+            doc.replaceRange(btn.val(), cursor);
+            
+            $(editor).focus();
+        });
+        
+        bar.append(btn);
+    }
 }
         </script>
 
