@@ -15,10 +15,11 @@ const cspBuiltins =
 
                     }],
                 ['RANDOM', (params)=>{
-                        if (isNaN(params[0]) || isNan(params[1]))
+                        if (isNaN(params[0]) || isNaN(params[1]))
                             throw "RANDOM requires two numbers to specify a range to choose from.";
                         let range = params[1] - params[0] + 1;
-                        return Math.floor(Math.random() * range + params[0]);
+                        let r = Math.floor(Math.random() * range + params[0]); 
+                        return r;
                     }],
                 ['LENGTH', (params)=>{
                         if (!params[0] || !Array.isArray(params[0]))
