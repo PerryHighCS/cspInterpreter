@@ -22,8 +22,8 @@ const cspBuiltins =
                         return r;
                     }],
                 ['LENGTH', (params)=>{
-                        if (!params[0] || !Array.isArray(params[0]))
-                            throw "LENGTH requires a list to inspect.";
+                        if (!params[0] || !(Array.isArray(params[0]) || typeof(params[0]) === 'string'))
+                            throw "LENGTH requires a or a string list to inspect.";
                         return params[0].length;
                     }],
                 ['APPEND', (params)=>{
