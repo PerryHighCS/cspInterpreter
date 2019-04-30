@@ -57,12 +57,24 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
         <script type="module">
+let doZombie = false;
+
 import {CspInterpreter} from "./js/cspInterpreter.js"
 import {Zombie} from "./js/zGraphics.js"   // Use zombie graphics for robot programming
+import {Robot} from "./js/rGraphics.js"
 import {RobotWorld} from "./js/robotWorld.js" 
 
-let plugins = [Zombie.getGraphicsCommands()];
+let plugins = [];
+let RobotClass = Robot;
 
+if (doZombie) {
+    plugins.push(Zombie.getGraphicsCommands());
+    RobotClass = Zombie;
+}
+else {
+    plugins.push(Robot.getGraphicsCommands());
+}
+    
 let source = document.getElementById("code");
 let canvas = document.getElementById("worldDisplay");
 let runbutton = document.getElementById("runButton");
@@ -104,7 +116,7 @@ function init(spec) {
         return null;
     }
     
-    let w = new RobotWorld(canvas, spec, Zombie);   // Initialize a robot world
+    let w = new RobotWorld(canvas, spec, RobotClass); // Initialize a robot world
     w.initObjects();
     w.redraw();                                     // Draw the world
 
@@ -149,7 +161,7 @@ function run(singleStep) {
         world.end();
     }
             
-    world = new RobotWorld(canvas, spec, Zombie);
+    world = new RobotWorld(canvas, spec, RobotClass);
     world.initObjects();
     world.start();
     world.redraw();

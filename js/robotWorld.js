@@ -111,7 +111,11 @@ export class RobotWorld {
         this.getHeight = function() {
             return tilesH;
         };
-          
+        
+        this.getTileSize = function() {
+            return tileSize;
+        };
+        
         /**
          * Remove an object from the world
          * @param {Object} obj
