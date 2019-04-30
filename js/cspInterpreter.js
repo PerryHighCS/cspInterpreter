@@ -266,7 +266,7 @@ export class CspInterpreter {
          * @param {integer} count
          */
         this.setSpeed = function(count) {
-            delayCount = (count >= 1) ? (count < 2000) ? count : 2000 : 1;
+            delayCount = (count >= 0) ? (count < 2000) ? count : 2000 : 0;
         };
         
         /**
@@ -326,7 +326,7 @@ export class CspInterpreter {
                             }
                             // Otherwise, wait
                             count ++;
-                        }, 1); // 50ms intervals
+                        }, 1); // 1ms intervals
                     });
                 })();
             }
@@ -744,7 +744,8 @@ export class CspInterpreter {
         }
         
         async function doNegate(node) {
-            return await -(evaluate(node.args));
+            const val = await evaluate(node.args);
+            return -(val);
         }
 
         async function doNot(node) {
