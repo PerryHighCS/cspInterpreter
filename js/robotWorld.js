@@ -1,4 +1,5 @@
 let obstacleSprite = null;
+let goalSprite = null;
 
 export class RobotWorld {
     /**
@@ -219,16 +220,25 @@ export class RobotWorld {
         };
         
         let buildSpecObject = function(objSpec, world) {
+            let object = null;
+            
             switch (objSpec.type.toLowerCase()) {
             case 'obstacle':
-                let object = new Obstacle();
-                world.setPosition(object, objSpec.x, objSpec.y);
+                object = new Obstacle();
+                world.setPosition(object, objSpec.x, objSpec.y);                
+                break;
                 
+            case 'goal':
+                object = new Goal();
+                world.setPosition(object, objSpec.x, objSpec.y);
                 break;
             }
+            
         };
         
         let Obstacle = class {
+            type = 'OBSTACLE';
+            
             async getSprite() {
                 if (obstacleSprite === null) {
                     let canvas = document.createElement("canvas");
@@ -248,6 +258,31 @@ export class RobotWorld {
                 return obstacleSprite;
             }
         };
+        
+        let Goal = class {
+            type = 'GOAL';
+            
+            async getSprite() {
+                if (goalSprite === null) {
+                    let canvas = document.createElement("canvas");
+                    canvas.width = canvas.height = tileSize;
+
+                    let ctx = canvas.getContext("2d");
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    ctx.fillStyle = "#7F7F7F";
+                    ctx.fillRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+                    goalSprite = new Image();
+                    goalSprite.src = canvas.toDataURL("image/png");
+                }
+
+                return goalSprite;
+            }
+        };
+        
+        
     }    
     
 }

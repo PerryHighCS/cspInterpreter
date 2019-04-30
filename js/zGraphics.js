@@ -75,7 +75,10 @@ export class Zombie {
                 world.setPosition(self, x, y);
                 
                 // If there are other objects there, crash the zombie
-                if (world.objectsAt(x, y).length > 1) {
+                let objects = world.objectsAt(x, y)
+                        .filter(obj => !(obj.obj.type !== 'GOAL'));
+                
+                if (objects.length > 1) {
                     crashed = true;
                     world.redraw();
                     throw "CRASH!";
@@ -154,8 +157,17 @@ export class Zombie {
             else {
                 // If it is in bounds, the zombie can move there only if it is
                 // vacant.
-                return world.objectsAt(lookx, looky).length === 0;
+                let objects = world.objectsAt(lookx, looky)
+                        .filter(obj => obj.obj.type !== 'GOAL');
+                return objects.length === 0;
             }
+        };
+        
+        this.onGoal = function() {
+            let objects = world.objectsAt(x, y)
+                       .filter(obj => (obj.obj.type === 'GOAL'));
+                
+            return objects.length > 0; 
         };
         
         /**
@@ -215,7 +227,8 @@ export class Zombie {
                 ['MOVE_FORWARD', ()=>zombie.forward()],
                 ['ROTATE_LEFT', ()=>zombie.left()],
                 ['ROTATE_RIGHT', ()=>zombie.right()],
-                ['CAN_MOVE', (params)=>zombie.canMove(params[0])]
+                ['CAN_MOVE', (params)=>zombie.canMove(params[0])],
+                ['GoalReached', ()=>zombie.onGoal()]
                 ])],
             ['vars', new Map([
                 ['right', "right"],
