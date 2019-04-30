@@ -1029,7 +1029,8 @@ export class CspInterpreter {
             ["REPEAT TIMES", "REPEAT _ TIMES\n{\n\n}"], 
             ["REPEAT UNTIL", "REPEAT UNTIL ( )\n{\n\n}"],
             ["FOR EACH", "FOR EACH item IN list\n{\n\n}"],
-            ["PROCEDURE", "PROCEDURE name ( )\n{\n\n}"]];
+            ["PROCEDURE", "PROCEDURE name ( )\n{\n\n}"],
+            ["RETURN", "RETURN ( )"]];
 
         theMap.forEach((mapping, type)=>{
             mapping.forEach((v, name)=> {
