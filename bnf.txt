@@ -1,5 +1,6 @@
 //peg.js - http://pegjs.org
 // Make sure use cache is turned on!
+// parser variable: export var cspParser
 
 {
     class ParseNode {
