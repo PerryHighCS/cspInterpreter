@@ -24,9 +24,10 @@ keyword = 'IF' / 'ELSE' / 'PROCEDURE' / 'REPEAT' / 'TIMES' / 'AND' / 'OR' / 'NOT
 
 _ "whitespace" = comment { return " "; } /
 				[ \t\n\r]* { return " "; };
+EOF = !.
 
-comment = ('#' [^\n]* '\n' /
-			'//' [^\n]* '\n');
+comment = ('#' [^\n]* ('\n' / EOF) /
+			'//' [^\n]* ('\n' / EOF))+;
 
 identifier = &(keyword)  // Don't match keywords
 	     / initial: [a-zA-Z] rest:([a-zA-Z0-9_]*)

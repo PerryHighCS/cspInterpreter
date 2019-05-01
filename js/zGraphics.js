@@ -6,7 +6,7 @@ import {Robot} from "./rGraphics.js"
 let sprites = null;
 let zombie = null;
  
-export class Zombie extends Robot {    
+export class Zombie extends Robot {
     constructor (world, initX, initY, initDir) {
         super(world, initX, initY, initDir);
         
