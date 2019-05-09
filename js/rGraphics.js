@@ -251,12 +251,13 @@ async function loadSprites(tileSize) {
         ctx.fillStyle = "black";
         
         let halfTile = tileSize / 2;
-        let thirdTile = tileSize / 4;
+        let quarterTile = tileSize / 4;
+        let eighthTile = tileSize / 8;
 
         ctx.beginPath();
-        ctx.moveTo(2, thirdTile);
-        ctx.lineTo(2, tileSize - thirdTile);
-        ctx.lineTo(tileSize - 2, halfTile);
+        ctx.moveTo(eighthTile, quarterTile);
+        ctx.lineTo(eighthTile, tileSize - quarterTile);
+        ctx.lineTo(tileSize - eighthTile, halfTile);
         ctx.closePath();
 
         ctx.fill();
@@ -284,9 +285,9 @@ async function loadSprites(tileSize) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         ctx.beginPath();
-        ctx.moveTo(2, thirdTile);
-        ctx.lineTo(2, tileSize - thirdTile);
-        ctx.lineTo(tileSize - 2, halfTile);
+        ctx.moveTo(eighthTile, quarterTile);
+        ctx.lineTo(eighthTile, tileSize - quarterTile);
+        ctx.lineTo(tileSize - eighthTile, halfTile);
         ctx.closePath();
         ctx.fillStyle = "#FF0000";
         ctx.fill();
