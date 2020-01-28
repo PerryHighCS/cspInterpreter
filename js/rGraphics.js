@@ -198,7 +198,7 @@ export class Robot {
             
             // Check the robot's condition
             if (this.crashed) {                
-                return sprites[4]; // return the crashed sprite
+                return sprites[4 + this.dir]; // return the crashed sprite
             }
             else {                
                 // return the robot facing in the current direction
@@ -241,18 +241,18 @@ export class Robot {
 
 async function loadSprites(tileSize) {
     let canvas = document.createElement("canvas");
+    //document.body.appendChild(canvas);
     canvas.width = canvas.height = tileSize;
     
     let ctx = canvas.getContext("2d");
+    
+    let halfTile = tileSize / 2;
+    let quarterTile = tileSize / 4;
+    let eighthTile = tileSize / 8;
         
-    if (robotSprite === null) {
+    let drawBot = function(color) {        
+        ctx.fillStyle = color;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "black";
-        
-        let halfTile = tileSize / 2;
-        let quarterTile = tileSize / 4;
-        let eighthTile = tileSize / 8;
 
         ctx.beginPath();
         ctx.moveTo(eighthTile, quarterTile);
@@ -261,18 +261,18 @@ async function loadSprites(tileSize) {
         ctx.closePath();
 
         ctx.fill();
-
-        robotSprite = [new Image()];
-        robotSprite[0].src = canvas.toDataURL("image/png");
+    };
         
-        for (let i = 0; i < 3; i++) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.save();
-            
+    if (robotSprite === null) {             
+        robotSprite = [];
+        
+        // Draw all directions for the robot
+        for (let i = 0; i < 4; i++) {            
+            ctx.save();            
             ctx.translate(halfTile, halfTile);
-            ctx.rotate((Math.PI / 2) * (i + 1));
-            ctx.drawImage(robotSprite[0], -halfTile, -halfTile);
+            ctx.rotate((Math.PI / 2) * i);
+            ctx.translate(-halfTile, -halfTile);
+            drawBot("black");
             
             let spr = new Image();
             spr.src = canvas.toDataURL("image/png");
@@ -282,29 +282,31 @@ async function loadSprites(tileSize) {
             robotSprite.push(spr);
         }
         
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Draw crashed versions of the robot
+        for (let i = 0; i < 4; i++) {
+            ctx.save();            
+            ctx.translate(halfTile, halfTile);
+            ctx.rotate((Math.PI / 2) * i);
+            ctx.translate(-halfTile, -halfTile);
+            drawBot("#FF0000");
+            
+            ctx.beginPath();
+            ctx.moveTo(4, 4);
+            ctx.lineTo(tileSize - 4, tileSize - 4);
+            ctx.moveTo(tileSize - 4, 4);
+            ctx.lineTo(4, tileSize - 4);
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#7F0000';
+            ctx.stroke();
         
-        ctx.beginPath();
-        ctx.moveTo(eighthTile, quarterTile);
-        ctx.lineTo(eighthTile, tileSize - quarterTile);
-        ctx.lineTo(tileSize - eighthTile, halfTile);
-        ctx.closePath();
-        ctx.fillStyle = "#FF0000";
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.moveTo(4, 4);
-        ctx.lineTo(tileSize - 4, tileSize - 4);
-        ctx.moveTo(tileSize - 4, 4);
-        ctx.lineTo(4, tileSize - 4);
-        
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#7F0000';
-        ctx.stroke();
-        
-        let robotCrashed = new Image();
-        robotCrashed.src = canvas.toDataURL("image/png");        
-        robotSprite.push(robotCrashed);
+            let spr = new Image();
+            spr.src = canvas.toDataURL("image/png");
+            
+            ctx.restore();
+            
+            robotSprite.push(spr);
+        }
     }
     
     return robotSprite;
