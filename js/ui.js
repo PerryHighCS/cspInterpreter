@@ -1,22 +1,12 @@
 /* global CodeMirror, URL */
-
-let doZombie = false;
-
 import {CspInterpreter} from "./cspInterpreter.js"
-import {Zombie} from "./zGraphics.js"   // Use zombie graphics for robot programming
-import {Robot} from "./rGraphics.js"    // Use cspRobot graphics for robot programming
+import {Zombie} from "./zGraphics.js"   // Add zombie graphics for robot programming
+import {Robot} from "./rGraphics.js"    // Add cspRobot graphics for robot programming
 import {RobotWorld} from "./robotWorld.js" 
 
+let basePlugins = [];
 let plugins = [];
 let RobotClass = Robot;
-
-if (doZombie) {
-    plugins.push(Zombie.getGraphicsCommands());
-    RobotClass = Zombie;
-}
-else {
-    plugins.push(Robot.getGraphicsCommands());
-}
 
 let source = document.getElementById("code");
 let canvas = document.getElementById("worldDisplay");
@@ -27,6 +17,19 @@ let consoledisp = document.getElementById("consoleDisplay");
 let stackdisp = document.getElementById("stackDisplay");
 let runspeed = document.getElementById("runSpeed");
 
+runbutton.addEventListener('click', ()=>run(false));
+stepbutton.addEventListener('click', step);
+stopbutton.addEventListener('click', stop);
+runspeed.addEventListener('input', setSpeed);
+
+let editButton = $("#editScenarioButton");
+let scenarioEditor = $("#scenarioEditor");
+
+editButton.click(showEditor);
+
+let fileIn = $('<input type="file" accept=".csp">')[0];
+fileIn.addEventListener('change', loadFile, false);
+
 // Convert the code display to a CodeMirror editor
 let height = $(source).height();
 let editor = CodeMirror.fromTextArea(source, {
@@ -35,23 +38,81 @@ let editor = CodeMirror.fromTextArea(source, {
 });
 editor.setSize(null,height);
 
-keywordButtons(...plugins);
-
 canvas.addEventListener('click', reinit);
 
 let interp = null;
 let zombie = null;
 
-let spec = {
-    width: 6,
-    height: 6,
-    objects: [{type: "Obstacle", x: 2, y: 5},
-              {type: "Obstacle", x: 1, y: 1},
-              {type: "Goal", x:5, y: 0}],
-    robot: {x: 0, y: 5, dir: 0}
-};
+let spec = null;
 
-let world = init(spec);
+let world = null;
+
+
+// TODO: Check and load spec from URL query parameters
+initScenario(); // init default scenario
+
+function initScenario(worldSpec, usePlugins, doZombie) {
+    
+    plugins = basePlugins;
+    
+    if (usePlugins) {
+        plugins.push(...usePlugins);
+    }
+    
+    if (doZombie) {
+        plugins.push(Zombie.getGraphicsCommands());
+        RobotClass = Zombie;
+    }
+    else {
+        plugins.push(Robot.getGraphicsCommands());
+        RobotClass = Robot;
+    }
+    
+    keywordButtons(...plugins);
+    
+    if (worldSpec) {
+        spec = worldSpec;
+    }
+    else {
+        // Create a default world
+        spec = new RobotWorld.Spec(
+                6, 6, 
+                [
+                    new RobotWorld.Object("Obstacle", 2, 5),
+                    new RobotWorld.Object("Obstacle", 1, 1),
+                    new RobotWorld.Object("Goal", 5, 0)
+                ],
+                0, 5, 0
+                );
+    } 
+    world = init(spec);    
+}
+
+$(window).bind('keydown', function(event) {
+    if (event.ctrlKey || event.metaKey) {
+        switch (String.fromCharCode(event.which).toLowerCase()) {
+        case 's':
+            event.preventDefault();
+            
+            let spec = {};
+            
+            spec.width = world.getWidth();
+            spec.height = world.getHeight();
+            spec.objects = world.getObjects();
+            spec.robot = world.getRobot();
+            spec.script = editor.getValue();            
+            
+            saveAs(JSON.stringify(spec, null, 2), "scenario.csp", "csp");
+                    
+            break;
+            
+        case 'o':
+            event.preventDefault();            
+            $(fileIn).trigger('click');            
+            break;
+        }
+    }
+});
 
 function init(spec) {
     if (spec === null) {
@@ -162,11 +223,6 @@ function setSpeed() {
     }
 }
 
-runbutton.addEventListener('click', ()=>run(false));
-stepbutton.addEventListener('click', step);
-stopbutton.addEventListener('click', stop);
-runspeed.addEventListener('input', setSpeed);
-
 function clearMarks() {
     let marks = editor.getAllMarks();
     
@@ -187,36 +243,6 @@ function saveAs(data, filename, filetype) {
         window.URL.revokeObjectURL(url);  
     }, 0); 
 }
-
-$(window).bind('keydown', function(event) {
-    if (event.ctrlKey || event.metaKey) {
-        switch (String.fromCharCode(event.which).toLowerCase()) {
-        case 's':
-            event.preventDefault();
-            
-            let spec = {};
-            
-            spec.width = world.getWidth();
-            spec.height = world.getHeight();
-            spec.objects = world.getObjects();
-            spec.robot = world.getRobot();
-            spec.script = editor.getValue();            
-            
-            saveAs(JSON.stringify(spec, null, 2), "scenario.csp", "csp");
-                    
-            break;
-            
-        case 'o':
-            event.preventDefault();            
-            $(fileIn).trigger('click');            
-            break;
-        }
-    }
-});
-
-let fileIn = $('<input type="file" accept=".csp">')[0];
-
-fileIn.addEventListener('change', loadFile, false);
 
 function loadFile(e) {
     var file = e.target.files[0];
@@ -271,11 +297,6 @@ function keywordButtons(...plugins) {
         bar.append(btn);
     }
 }
-
-let editButton = $("#editScenarioButton");
-let scenarioEditor = $("#scenarioEditor");
-
-editButton.click(showEditor);
 
 function showEditor() {
     scenarioEditor.modal({backdrop: 'static'});

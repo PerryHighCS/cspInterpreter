@@ -286,9 +286,26 @@ export class RobotWorld {
                 return goalSprite;
             }
         };
-        
-        
-    }    
-    
+    }      
 }
 
+RobotWorld.Object = class {    
+    constructor(type, xpos, ypos) {
+        this.type = type;
+        this.x = xpos;
+        this.y = ypos;
+    }
+};
+
+RobotWorld.Spec = class {
+    constructor(width, height, objects, robotx, roboty, robotdir) {
+        this.width = width;
+        this.height = height;
+        this.objects = objects;
+        this.robot = {
+            x: robotx,
+            y: roboty,
+            dir: robotdir
+        };
+    }
+};
