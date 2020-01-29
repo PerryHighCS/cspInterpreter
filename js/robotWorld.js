@@ -9,7 +9,7 @@ export class RobotWorld {
      * @param {Map} spec the definition of the world
      * @param {class} robotType a class defining the Robot to use in the world
      */
-    constructor(canvas, spec, robotType) {
+    constructor(canvas, spec, robotType) {        
         const tileSize = 64;
         
         // If the width/height haven't been set, calculate the maximum unscaled
@@ -223,6 +223,10 @@ export class RobotWorld {
             
             return robotSpec;
         };
+        
+        this.getSpec = function() {
+            return spec;
+        }
         
         let buildSpecObject = function(objSpec, world) {
             let object = null;

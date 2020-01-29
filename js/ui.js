@@ -43,8 +43,6 @@ canvas.addEventListener('click', reinit);
 let interp = null;
 let zombie = null;
 
-let spec = null;
-
 let world = null;
 
 
@@ -257,8 +255,7 @@ function loadFile(e) {
         
         spec = contents;
         
-        init(spec);
-        
+        world = init(spec);        
     };
     
     reader.readAsText(file);
