@@ -1,4 +1,5 @@
 //peg.js - http://pegjs.org
+// peg.js options:
 // Make sure use cache is turned on!
 // parser variable: export var cspParser
 

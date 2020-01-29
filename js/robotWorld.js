@@ -7,6 +7,7 @@ export class RobotWorld {
      * 
      * @param {Canvas} canvas the canvas to use for displaying the world
      * @param {Map} spec the definition of the world
+     * @param {class} robotType a class defining the Robot to use in the world
      */
     constructor(canvas, spec, robotType) {
         const tileSize = 64;

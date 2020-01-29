@@ -7,18 +7,36 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
         
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/codemirror.css">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/codemirror.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/codemirror.js"></script>        
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/addon/edit/matchbrackets.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/addon/comment/continuecomment.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/addon/comment/comment.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/addon/selection/mark-selection.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.41.0/mode/javascript/javascript.min.js"></script>
+        
         <link rel="stylesheet" href="./cspInterp.css">
-
     </head>
     <body>
         <div class="container-fluid">
             <h2>cspInterpreter</h2>
+            <div class="modal" id="scenarioEditor" tabindex="-1" role="dialog">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title">Edit Scenario</h5>
+                        </div>
+                        <div class="modal-body">
+                            <div>
+                                <canvas id="worldEditor" width="400" height="400" style="width: 400px; height: 400px; border: 1px solid"></canvas>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary">💾 Save changes</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal"><span aria-hidden="true">&times;</span> Cancel</button>
+                        </div>
+                  </div>
+                </div>
+            </div>
             <div class="row">
                 <div class="col keywords" style="max-width: min-content; font-size: smaller; overflow-y: auto;">                    
                 </div>
@@ -42,6 +60,9 @@
                     <div class="row">
                         <div class="col">
                             <div>
+                                <div class="text-center">
+                                    <button type="button" id="editScenarioButton" class ="btn  btn-outline">✏ Edit Scenario</button>
+                                </div>
                                 <canvas id="worldDisplay" width="400" height="400" style="width: 400px; height: 400px; border: 1px solid"></canvas>                                
                             </div>
                             Output:
@@ -56,281 +77,7 @@
         <script src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-        <script type="module">
-let doZombie = false;
-
-import {CspInterpreter} from "./js/cspInterpreter.js"
-import {Zombie} from "./js/zGraphics.js"   // Use zombie graphics for robot programming
-import {Robot} from "./js/rGraphics.js"
-import {RobotWorld} from "./js/robotWorld.js" 
-
-let plugins = [];
-let RobotClass = Robot;
-
-if (doZombie) {
-    plugins.push(Zombie.getGraphicsCommands());
-    RobotClass = Zombie;
-}
-else {
-    plugins.push(Robot.getGraphicsCommands());
-}
-    
-let source = document.getElementById("code");
-let canvas = document.getElementById("worldDisplay");
-let runbutton = document.getElementById("runButton");
-let stopbutton = document.getElementById("stopButton");
-let stepbutton = document.getElementById("stepButton");
-let consoledisp = document.getElementById("consoleDisplay");
-let stackdisp = document.getElementById("stackDisplay");
-let runspeed = document.getElementById("runSpeed");
-
-// Convert the code display to a CodeMirror editor
-let height = $(source).height();
-let editor = CodeMirror.fromTextArea(source, {
-  lineNumbers: true,
-  matchBrackets: true,
-});
-editor.setSize(null,height);
-
-keywordButtons(...plugins);
-
-canvas.addEventListener('click', reinit);
-
-let interp = null;
-let zombie = null;
-
-let spec = {
-    width: 6,
-    height: 6,
-    objects: [{type: "Obstacle", x: 2, y: 5},
-              {type: "Obstacle", x: 1, y: 1},
-              {type: "Goal", x:5, y: 0}],
-    robot: {x: 0, y: 5, dir: 0}
-}
-
-let world = init(spec);
-
-function init(spec) {
-    if (spec === null) {
-        $(canvas).hide();
-        return null;
-    }
-    
-    let w = new RobotWorld(canvas, spec, RobotClass); // Initialize a robot world
-    w.initObjects();
-    w.redraw();                                     // Draw the world
-
-    if (spec.script !== undefined)
-        editor.setValue(spec.script);
-        
-    return w;
-}
-
-function reinit() {
-    if (interp !== null) {
-        if (interp.runMode() == "stop" || interp.runMode() == "end") {
-            world = init(spec);
-        }
-        
-        if (interp.runMode() == "end") {
-            interp.stop();
-        }
-    }
-    
-    return false;
-}
-
-function run(singleStep) {
-    let code = editor.getValue();
-    
-    if (interp !== null) {
-        if (interp.runMode() === 'run' || interp.runMode() === 'end') {
-            interp.stop();
-        }
-        else {
-            interp.continue();
-            return false;
-        }
-    }
-    
-    clearMarks();
-    
-    $(runbutton).focus();
-    
-    if (world != null) {
-        world.end();
-    }
-            
-    world = new RobotWorld(canvas, spec, RobotClass);
-    world.initObjects();
-    world.start();
-    world.redraw();
-    
-    try {
-        interp = new CspInterpreter(code, plugins, consoledisp, canvas,
-                                    stackdisp, editor);
-    }
-    catch (e) {
-        alert(e);
-        $(stopbutton).focus(); 
-        world.end();
-        return false;
-    }
-    
-    interp.setSpeed(runspeed.value);
-    interp.go(singleStep)
-            .then(() => {$(stopbutton).focus(); world.end();})
-            .catch((e) => {alert(e); $(stopbutton).focus(); world.end();});
-    return false;
-}
-
-function stop() {
-    if (interp !== null) {
-        interp.stop();
-        world.end();
-    }
-}
-
-function step() {
-    clearMarks();
-    
-    if (interp === null) {
-        run(true);
-    }
-    else if (interp.runMode() === 'run' || interp.runMode() === 'step') {
-        interp.step();
-    }
-    else {
-        run(true);
-    }
-    
-}
-
-function setSpeed() {
-    let minslider = 0;
-    let maxslider = 100;
-    let minspeed = Math.log(1);
-    let maxspeed = Math.log(2000);
-    
-    let scale = (maxspeed-minspeed) / (maxslider-minslider) 
-    
-    if (zombie !== null) {
-        interp.setSpeed(Math.exp(runspeed.value * scale + minspeed));
-    }
-}
-
-runbutton.addEventListener('click', ()=>run(false));
-stepbutton.addEventListener('click', step);
-stopbutton.addEventListener('click', stop);
-runspeed.addEventListener('input', setSpeed);
-
-function clearMarks() {
-    let marks = editor.getAllMarks();
-    
-    marks.forEach(mark => mark.clear());
-}
-
-function saveAs(data, filename, filetype) {
-    let file = new Blob([data], {type: filetype});
-    
-    let a = document.createElement("a"),
-            url = URL.createObjectURL(file);
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function() {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);  
-    }, 0); 
-}
-
-$(window).bind('keydown', function(event) {
-    if (event.ctrlKey || event.metaKey) {
-        switch (String.fromCharCode(event.which).toLowerCase()) {
-        case 's':
-            event.preventDefault();
-            
-            let spec = {};
-            
-            spec.width = world.getWidth();
-            spec.height = world.getHeight();
-            spec.objects = world.getObjects();
-            spec.robot = world.getRobot();
-            spec.script = editor.getValue();            
-            
-            saveAs(JSON.stringify(spec, null, 2), "scenario.csp", "csp");
-                    
-            break;
-            
-        case 'o':
-            event.preventDefault();            
-            $(fileIn).trigger('click');            
-            break;
-        }
-    }
-});
-
-let fileIn = $('<input type="file" accept=".csp">')[0];
-
-fileIn.addEventListener('change', loadFile, false);
-
-console.log(fileIn);
-
-function loadFile(e) {
-    var file = e.target.files[0];
-    
-    if (!file) {
-        return;
-    }
-    
-    let reader = new FileReader();
-    reader.onload = (e) => {
-        let contents = JSON.parse(e.target.result);
-        
-        spec = contents;
-        
-        init(spec);
-        
-    };
-    
-    reader.readAsText(file)
-    
-    e.target.value = null;
-}
-
-function keywordButtons(...plugins) {
-    let keywords = CspInterpreter.keyWords(plugins);
-    let bar = $('.keywords');
-    
-    
-    for (let i in keywords) {
-        let btn = $('<button>');
-        btn.width('100%');
-        
-        let word = keywords[i];
-        
-        if (word instanceof Array) {
-            btn.val(word[1]);
-            btn.text(word[0]);
-        }
-        else {
-            btn.val(word);
-            btn.text(word);
-        }
-        
-        btn.click(() => {
-            let doc = editor.getDoc();
-            let cursor = doc.getCursor();
-            doc.replaceRange(btn.val(), cursor);
-            
-            $(editor).focus();
-        });
-        
-        bar.append(btn);
-    }
-}
-        </script>
+        <script type="module" src="js/ui.js"></script>
 
     </body>
 </html>
