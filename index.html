@@ -25,13 +25,31 @@
                         <div class="modal-header">
                           <h5 class="modal-title">Edit Scenario</h5>
                         </div>
-                        <div class="modal-body">
+                        <div class="modal-body">                                
+
+                            <form class="form-inline">
+                                <div class="form-row">
+                                    <div class="input-group col-md-6">
+                                        <label class="mr-sm-2" for="worldWidth">Width</label>
+                                        <input type="number" class="form-control" id="worldWidth" min="1" max="20">
+                                    </div>
+                                    <div class="input-group col-md-6">
+                                        <label class="mr-sm-2" for="worldHeight">Height</label>
+                                        <input type="number" class="form-control" id="worldHeight" min="1" max="20">
+                                    </div>
+                                </div>
+                            </form>
+                            <div style="text-align: center;" class="m-sm-2">                                
+                                <canvas id="editorCanvas" width="400" height="400" style="width: 400px; height: 400px; border: 1px solid"></canvas>
+                            </div>
                             <div>
-                                <canvas id="worldEditor" width="400" height="400" style="width: 400px; height: 400px; border: 1px solid"></canvas>
+                                <p>Drag the robot to move. Click the robot to rotate.</p>
+                                <p>Click other cells to switch between Empty &rarr; Block &rarr; Goal</p>
                             </div>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-primary">💾 Save changes</button>
+                        <div class="modal-footer">                            
+                            <button type="button" class="btn btn-danger">Clear World</button>
+                            <button type="button" class="btn btn-primary" id="saveWorldButton">💾 Save changes</button>
                             <button type="button" class="btn btn-secondary" data-dismiss="modal"><span aria-hidden="true">&times;</span> Cancel</button>
                         </div>
                   </div>

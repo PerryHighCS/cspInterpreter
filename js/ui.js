@@ -3,6 +3,7 @@ import {CspInterpreter} from "./cspInterpreter.js"
 import {Zombie} from "./zGraphics.js"   // Add zombie graphics for robot programming
 import {Robot} from "./rGraphics.js"    // Add cspRobot graphics for robot programming
 import {RobotWorld} from "./robotWorld.js" 
+import {WorldEditor} from "./worldEditor.js"
 
 let basePlugins = [];
 let plugins = [];
@@ -43,11 +44,13 @@ canvas.addEventListener('click', reinit);
 let interp = null;
 let zombie = null;
 
+let spec = null;
 let world = null;
 
+let worldEditor = null;
 
 // TODO: Check and load spec from URL query parameters
-initScenario(); // init default scenario
+initScenario(spec); // init default scenario
 
 function initScenario(worldSpec, usePlugins, doZombie) {
     
@@ -67,7 +70,7 @@ function initScenario(worldSpec, usePlugins, doZombie) {
     }
     
     keywordButtons(...plugins);
-    
+
     if (worldSpec) {
         spec = worldSpec;
     }
@@ -90,21 +93,19 @@ $(window).bind('keydown', function(event) {
     if (event.ctrlKey || event.metaKey) {
         switch (String.fromCharCode(event.which).toLowerCase()) {
         case 's':
+            // Ctrl-s opens a save dialog to save the current scenario
             event.preventDefault();
             
-            let spec = {};
+            let scenario = world.getSpec();
             
-            spec.width = world.getWidth();
-            spec.height = world.getHeight();
-            spec.objects = world.getObjects();
-            spec.robot = world.getRobot();
-            spec.script = editor.getValue();            
+            scenario.script = editor.getValue();            
             
-            saveAs(JSON.stringify(spec, null, 2), "scenario.csp", "csp");
+            saveAs(JSON.stringify(scenario, null, 2), "scenario.csp", "csp");
                     
             break;
             
         case 'o':
+            // Ctrl-o opens a load file to load a scenario
             event.preventDefault();            
             $(fileIn).trigger('click');            
             break;
@@ -251,10 +252,8 @@ function loadFile(e) {
     
     let reader = new FileReader();
     reader.onload = (e) => {
-        let contents = JSON.parse(e.target.result);
-        
-        spec = contents;
-        
+        spec = JSON.parse(e.target.result);
+                
         world = init(spec);        
     };
     
@@ -296,14 +295,10 @@ function keywordButtons(...plugins) {
 }
 
 function showEditor() {
-    scenarioEditor.modal({backdrop: 'static'});
-    
-    let canvas = scenarioEditor.find('#worldEditor')[0];
-    
-    console.log(spec);
-    
-    let w = new RobotWorld(canvas, spec, RobotClass); // Initialize a robot world
-    w.initObjects();
-    w.redraw();                                       // Draw the world
-    
+    worldEditor = new WorldEditor(scenarioEditor, world, RobotClass, updateSpec);    
+}
+
+function updateSpec(newSpec) {
+    spec = newSpec;
+    world = init(spec);
 }

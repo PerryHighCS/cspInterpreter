@@ -9,7 +9,7 @@ export class RobotWorld {
      * @param {Map} spec the definition of the world
      * @param {class} robotType a class defining the Robot to use in the world
      */
-    constructor(canvas, spec, robotType) {        
+    constructor(canvas, spec, robotType) {
         const tileSize = 64;
         
         // If the width/height haven't been set, calculate the maximum unscaled
@@ -37,17 +37,8 @@ export class RobotWorld {
         let worldHeight = tilesH * tileSize;
         let worldWidth = tilesW * tileSize;
         
-        //let aspect = worldWidth / worldHeight;
-        let canvasAspect = cWidth / cHeight;
-        
-        if (tilesW > tilesH) {
-            canvas.width = worldWidth;
-            canvas.height = worldWidth / canvasAspect;
-        }
-        else {
-            canvas.height = worldHeight;
-            canvas.width = worldHeight * canvasAspect;
-        }
+        canvas.width = Math.max(worldWidth, worldHeight);
+        canvas.height = Math.max(worldWidth, worldHeight);
         
         // Determine the offset to center the world on the canvas
         let offsetX = (canvas.width - worldWidth) / 2;
@@ -168,6 +159,25 @@ export class RobotWorld {
             return objs;
         };
         
+        this.pixelToTilePos = function(x, y) {            
+            x = x * (Math.max(worldWidth, worldHeight) / canvas.clientWidth);
+            y = y * (Math.max(worldWidth, worldHeight) / canvas.clientHeight);
+                        
+            x = x - offsetX;
+            y = y - offsetY;
+            
+            x = Math.floor(x / tileSize);
+            y = Math.floor(y / tileSize);
+            
+            
+            if (x >= 0 && y >= 0 && x < tilesW && y < tilesH) {
+                return {x: x, y: y};            
+            }
+            else {
+                return null;
+            }
+        };
+        
         /**
          * Empty out the world and initialize all spec'ed objects
          */
@@ -176,17 +186,20 @@ export class RobotWorld {
             
             objects = new Map();
             
-            if (spec.objects !== undefined) {
-                spec.objects.forEach((obj) => buildSpecObject(obj, this));
-            }
-            
             if (spec.robot !== undefined) {
                 let x = spec.robot.x ? spec.robot.x : 0;
                 let y = spec.robot.y ? spec.robot.y : 0;
                 let dir = spec.robot.dir ? spec.robot.dir : 0;
                 
+                x = Math.min(x, spec.width - 1);
+                y = Math.min(y, spec.height - 1);
+                
                 this.robot = new robotType(this, x, y, dir);
             }
+            
+            if (spec.objects !== undefined) {
+                spec.objects.forEach((obj) => buildSpecObject(obj, this));
+            }            
         };
         
         this.getObjects = function() {
@@ -224,25 +237,47 @@ export class RobotWorld {
             return robotSpec;
         };
         
+        this.currentSpec = function() {
+            let newSpec = {};
+            
+            newSpec.width = this.getWidth();
+            newSpec.height = this.getHeight();
+            
+            let robot = objects.get(this.robot);
+            newSpec.robot = {x: robot.x, y: robot.y, dir: robot.obj.getDir()};
+            
+            newSpec.objects = this.getObjects();
+            
+            return newSpec;
+        };
+        
         this.getSpec = function() {
             return spec;
-        }
-        
+        };
+                
         let buildSpecObject = function(objSpec, world) {
             let object = null;
             
-            switch (objSpec.type.toLowerCase()) {
-            case 'obstacle':
-                object = new Obstacle();
-                world.setPosition(object, objSpec.x, objSpec.y);                
-                break;
-                
-            case 'goal':
-                object = new Goal();
-                world.setPosition(object, objSpec.x, objSpec.y);
-                break;
-            }
+            let x = Math.min(objSpec.x, world.getWidth() - 1);
+            let y = Math.min(objSpec.y, world.getHeight() - 1);
             
+            if (world.objectsAt(x,y).length === 0) {
+                switch (objSpec.type.toLowerCase()) {
+                case 'obstacle':
+                    object = new Obstacle();
+                    world.setPosition(object, x, y);                
+                    break;
+
+                case 'goal':
+                    object = new Goal();
+                    world.setPosition(object, x, y);
+                    break;
+                }
+            }
+        };
+        
+        this.makeObject = function(objectSpec) {
+            buildSpecObject(objectSpec, this);
         };
         
         let Obstacle = class {
