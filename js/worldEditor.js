@@ -12,6 +12,10 @@ export class WorldEditor {
         let height = world.getHeight();
         let width = world.getWidth();
         
+        let draggingRobot = false;
+        let dontClick = false;
+        let dragStartPos = null;
+        
         heightBox.val(height);        
         widthBox.val(width);
                 
@@ -47,14 +51,14 @@ export class WorldEditor {
             
             let make = null;
             
-            // If nothing was present, make an obstacle
-            if (objects.length === 0) {
+            
+            if (dontClick) {        // If a previous event requested click suppression
+                dontClick = false;  // ignore the click and clear the flag
+            }
+            else if (objects.length === 0) { // If nothing was present, make an obstacle
                 make = 'OBSTACLE';
             }
-            else if (objects[0].obj.constructor.name === 'Robot') { // If the robot was clicked on
-                w.robot.right(); // rotate it
-            }
-            else {
+            else if (objects[0].obj && objects[0].obj.type) {
                 // if an obstacle was present, turn it into a goal
                 let type = objects[0].obj.type.toLowerCase();                
                 if (type === 'obstacle') {
@@ -72,14 +76,75 @@ export class WorldEditor {
                 w.makeObject(new RobotWorld.Object(make, pos.x, pos.y));
             }
             
-            w.redraw();
-            
+            w.redraw();            
             e.preventDefault();
+        };
+        
+        let mouseDown = function(e) {
+            let pos = w.pixelToTilePos(e.offsetX, e.offsetY);
+            let bot = w.robot;
+                        
+            if ((e.which === 1) && (pos.x === bot.x && pos.y === bot.y)) {
+                draggingRobot = bot;
+                dragStartPos = pos;
+            }
+            return false;
+        };
+        
+        let mouseMove = function(e) { 
+            if (draggingRobot) {   
+                let pos = w.pixelToTilePos(e.offsetX, e.offsetY);
+                
+                if (pos && w.objectsAt(pos.x, pos.y).length === 0) {
+                    w.setPosition(draggingRobot, pos.x, pos.y);
+                    draggingRobot.x = pos.x;
+                    draggingRobot.y = pos.y;
+                }
+                
+                w.redraw();
+            }
+            
+            return false;
+        };
+        
+        let mouseUp = function(e) {
+            if (draggingRobot) {              
+                let pos = w.pixelToTilePos(e.offsetX, e.offsetY);
+                
+                if (pos && w.objectsAt(pos.x, pos.y).length === 0) {
+                    w.setPosition(draggingRobot, pos.x, pos.y);
+                    draggingRobot.x = pos.x;
+                    draggingRobot.y = pos.y;
+                }
+                draggingRobot = false;
+                
+                if (dragStartPos.x !== pos.x && dragStartPos.y !== pos.y) {
+                    dontClick = true;
+                }
+                
+                w.redraw();
+            }     
+            return false;       
+        };
+        
+        let doubleClick = function(e) {
+            let pos = w.pixelToTilePos(e.offsetX, e.offsetY);
+            let bot = w.robot;
+            
+            if (pos.x === bot.x && pos.y === bot.y) { // If the robot was clicked on
+                w.robot.right(); // rotate it                 
+            }
+            e.preventDefault();
+            return false;
         };
         
         heightBox.on('input', this.resize);
         widthBox.on('input', this.resize);
-        canvas.click(clicked);
+        canvas.on('click', clicked);
+        canvas.on('mousedown', mouseDown);
+        canvas.on('mouseup', mouseUp);
+        canvas.on('mousemove', mouseMove);
+        canvas.on('dblclick', doubleClick);
         saveButton.click(() => {
             save(w.currentSpec());
             editorModal.modal('hide');

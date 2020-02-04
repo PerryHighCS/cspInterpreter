@@ -75,8 +75,7 @@ export class RobotWorld {
                 ctx.stroke();
             }
             
-            // For every object in the world
-            objects.forEach((obj)=>{
+            let draw = function(obj) {
                 // Determine it's pixel position
                 let x = obj.x * tileSize + offsetX;
                 let y = obj.y * tileSize + offsetY;
@@ -85,6 +84,14 @@ export class RobotWorld {
                 obj.obj.getSprite().then((sprite) => {
                     ctx.drawImage(sprite, x, y);
                 });
+            };
+            
+            // For every object in the world
+            objects.forEach((obj) => {
+                if (obj.obj !== this.robot) {
+                    draw(obj);
+                }
+                draw({obj: this.robot, x: this.robot.x, y: this.robot.y});
             });
         };
         
