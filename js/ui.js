@@ -14,6 +14,7 @@ let canvas = document.getElementById("worldDisplay");
 let runbutton = document.getElementById("runButton");
 let stopbutton = document.getElementById("stopButton");
 let stepbutton = document.getElementById("stepButton");
+let resetbutton = document.getElementById("resetButton");
 let consoledisp = document.getElementById("consoleDisplay");
 let stackdisp = document.getElementById("stackDisplay");
 let runspeed = document.getElementById("runSpeed");
@@ -22,6 +23,7 @@ runbutton.addEventListener('click', ()=>run(false));
 stepbutton.addEventListener('click', step);
 stopbutton.addEventListener('click', stop);
 runspeed.addEventListener('input', setSpeed);
+resetbutton.addEventListener('click', reset);
 
 let editButton = $("#editScenarioButton");
 let scenarioEditor = $("#scenarioEditor");
@@ -191,6 +193,24 @@ function stop() {
     if (interp !== null) {
         interp.stop();
         world.end();
+    }
+}
+
+function reset() {
+    if (interp !== null) {
+        interp.stop(true);
+        world.end();
+                
+        world = new RobotWorld(canvas, spec, RobotClass);
+        world.initObjects();
+        
+        world.redraw();
+        
+        interp = null;
+        
+        
+        clearMarks();
+        $(resetbutton).blur();
     }
 }
 

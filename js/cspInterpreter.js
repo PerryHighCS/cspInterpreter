@@ -174,6 +174,7 @@ export class CspInterpreter {
         let stopped = true;
         let isStepping = false;
         let step = false;
+        let resetting = false;
         
         let hilightedCode;
 
@@ -306,9 +307,15 @@ export class CspInterpreter {
                         let count = 0;
                         let si = setInterval(()=>{
                             // Abandon the delay if execution is ordered to stop
-                            if (doStop) {
+                            if (doStop || resetting) {
                                 clearInterval(si);
-                                reject("STOPPED");
+                                
+                                if (!resetting) {
+                                    reject("STOPPED");
+                                }
+                                else if (hilightedCode) {
+                                    hilightedCode.clear();
+                                }
                             }
                             // If single stepping and a step is received, continue
                             else if (isStepping && step) {
@@ -335,11 +342,13 @@ export class CspInterpreter {
         /**
          * Force program execution to come to a stop
          * 
+         * @param reset       Reset the display after stopping
          * @returns {Promise} A promise that will be resolved when execution is
          *                    stopped
          */
-        this.stop = async function() {
+        this.stop = async function(reset) {
             if (isRunning) {
+                resetting = reset;
                 doStop = true;
 
                 await (()=>{
