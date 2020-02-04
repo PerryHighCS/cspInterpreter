@@ -49,10 +49,7 @@ export class RobotWorld {
                 
         // Create a list to hold all the world's sprites
         let sprites = [];
-        
-        // Create a timer for updating the world display
-        let timer = null;
-                
+                        
         /**
          * Update the display of the world
          */
@@ -86,13 +83,15 @@ export class RobotWorld {
                 });
             };
             
-            // For every object in the world
+            // Draw every object in the world except the robot
             objects.forEach((obj) => {
                 if (obj.obj !== this.robot) {
                     draw(obj);
                 }
-                draw({obj: this.robot, x: this.robot.x, y: this.robot.y});
             });
+            
+            // Draw the robot
+            draw({obj: this.robot, x: this.robot.x, y: this.robot.y});
         };
         
         /**
@@ -137,14 +136,14 @@ export class RobotWorld {
          * Stop running the world
          */
         this.end = function() {
-            clearInterval(timer);
+            
         };
         
         /**
          * Start running the world
          */
         this.start = function() {
-            timer = setInterval(this.redraw, 200);
+            
         };
         
         /**

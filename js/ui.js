@@ -205,8 +205,7 @@ function step() {
     }
     else {
         run(true);
-    }
-    
+    }    
 }
 
 function setSpeed() {
