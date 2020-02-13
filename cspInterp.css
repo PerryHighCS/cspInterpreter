@@ -71,3 +71,13 @@ ul.programStack dl {
 #consoleDisplay {
     padding: 2px;
 }
+
+.dotmenu {
+  font-weight: 900;
+  color: #2e2e2e;
+  text-align: center;
+}
+
+.dropdown-toggle:after {
+    display: none;
+}

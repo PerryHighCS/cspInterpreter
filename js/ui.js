@@ -1,4 +1,4 @@
-/* global CodeMirror, URL */
+/* global CodeMirror, URL, History */
 import {CspInterpreter} from "./cspInterpreter.js"
 import {Zombie} from "./zGraphics.js"   // Add zombie graphics for robot programming
 import {Robot} from "./rGraphics.js"    // Add cspRobot graphics for robot programming
@@ -33,6 +33,10 @@ editButton.click(showEditor);
 let fileIn = $('<input type="file" accept=".csp">')[0];
 fileIn.addEventListener('change', loadFile, false);
 
+$('#menuload').click(load);
+$('#menusave').click(save);
+$('#menugist').click(gist);
+
 // Convert the code display to a CodeMirror editor
 let height = $(source).height();
 let editor = CodeMirror.fromTextArea(source, {
@@ -60,17 +64,7 @@ if (params.has('zombie')) {
 
 // If the url contains a GIST id
 if (params.has('gist')) {
-    loadFromGist(decodeURI(params.get('gist')),
-        (files) => {
-            if (files && files.length > 0) {
-                spec = JSON.parse(files[0].contents);
-            }
-            initScenario(spec);           
-            
-        }, 
-        (x, txtStatus, error) => {
-                alert(txtStatus + " error retrieving github gist " + error);
-            });
+    loadGist(decodeURI(params.get('gist')));
 }
 else {    
     initScenario(spec); // init default scenario
@@ -118,23 +112,53 @@ $(window).bind('keydown', function(event) {
         case 's':
             // Ctrl-s opens a save dialog to save the current scenario
             event.preventDefault();
-            
-            let scenario = world.getSpec();
-            
-            scenario.script = editor.getValue();            
-            
-            saveAs(JSON.stringify(scenario, null, 2), "scenario.csp", "csp");
-                    
+            save();
             break;
             
         case 'o':
             // Ctrl-o opens a load file to load a scenario
             event.preventDefault();            
-            $(fileIn).trigger('click');            
+            load();           
             break;
         }
     }
 });
+
+function save() {
+    let scenario = world.getSpec();
+    scenario.script = editor.getValue();            
+    saveAs(JSON.stringify(scenario, null, 2), "scenario.csp", "csp");
+}
+
+function load() {
+    $(fileIn).trigger('click'); 
+}
+
+function gist() {
+    let gistid = prompt("Enter the Gist ID (a long string like 80ab0a61949a5962f239aec719a61082)");
+    
+    if (gistid !== null) {
+        params.set('gist', gistid);
+        loadGist(gistid);
+        
+        History.pushState(null, document.title, `${location.pathname}?${params}`);
+
+    }
+}
+
+function loadGist(gistid) {
+    loadFromGist(gistid,
+        (files) => {
+            if (files && files.length > 0) {
+                spec = JSON.parse(files[0].contents);
+            }
+            initScenario(spec);           
+            
+        }, 
+        (x, txtStatus, error) => {
+                alert(txtStatus + " error retrieving github gist " + error);
+            });
+}
 
 function init(spec) {
     if (spec === null) {

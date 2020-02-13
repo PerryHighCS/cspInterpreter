@@ -23,15 +23,15 @@
         <!-- Polyfill... make browsers understand the same Javascript -->
         <script type="text/javascript" src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
         
+        
         <script src="js/gist.js"></script>
         
         <link rel="stylesheet" href="./cspInterp.css">
     </head>
     <body>
         <div class="container-fluid">
-            <h2>cspInterpreter</h2>
             <div class="modal" id="scenarioEditor" tabindex="-1" role="dialog">
-                <div class="modal-dialog" role="document">
+                <div class="modal-dialog" role="document" style="display:none;">
                     <div class="modal-content">
                         <div class="modal-header">
                           <h5 class="modal-title">Edit Scenario</h5>
@@ -60,12 +60,23 @@
                         </div>
                         <div class="modal-footer">                            
                             <button type="button" class="btn btn-danger">Clear World</button>
-                            <button type="button" class="btn btn-primary" id="saveWorldButton">💾 Save changes</button>
+                            <button type="button" class="btn btn-primary" id="saveWorldButton">💾 Keep changes</button>
                             <button type="button" class="btn btn-secondary" data-dismiss="modal"><span aria-hidden="true">&times;</span> Cancel</button>
                         </div>
                   </div>
                 </div>
             </div>
+            <div class="dropdown" style="display: inline-block;">
+                <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" id="mainmenu" aria-haspopup="true" aria-expanded="false">&vellip;</button>
+                
+                <ul class="dropdown-menu" aria-labelledby="mainmenu">
+                    <li><a id="menuload">Load .csp</a></li>
+                    <li><a id="menusave">Save .csp</a></li>
+                    <li role="separator" class="divider"><hr></li>
+                    <li><a id="menugist">Load from gist</a></li>
+                </ul>
+            </div>
+            <h2 style="display: inline-block">CSP Pseudo</h2>
             <div class="row">
                 <div class="col keywords" style="max-width: min-content; font-size: smaller; overflow-y: auto;">                    
                 </div>
@@ -107,6 +118,9 @@
         <script src="https://code.jquery.com/jquery-3.2.1.min.js" ></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+        <!-- Browser History management -->
+        <script src="js/jquery.history.js"></script>
         
         <script type="module" src="js/ui.js"></script>
     </body>
