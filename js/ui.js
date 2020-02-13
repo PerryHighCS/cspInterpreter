@@ -44,7 +44,7 @@ editor.setSize(null,height);
 canvas.addEventListener('click', reinit);
 
 let interp = null;
-let zombie = null;
+let zombie = false;
 
 let spec = null;
 let world = null;
@@ -53,6 +53,10 @@ let worldEditor = null;
 
 // Check get url parameters
 var params = new URLSearchParams(window.location.search);
+
+if (params.has('zombie')) {
+    zombie = true;
+}
 
 // If the url contains a GIST id
 if (params.has('gist')) {
@@ -71,7 +75,7 @@ if (params.has('gist')) {
 else {    
     initScenario(spec); // init default scenario
 }
-function initScenario(worldSpec, usePlugins, doZombie) {
+function initScenario(worldSpec, usePlugins) {
     
     plugins = basePlugins;
     
@@ -79,7 +83,7 @@ function initScenario(worldSpec, usePlugins, doZombie) {
         plugins.push(...usePlugins);
     }
     
-    if (doZombie) {
+    if (zombie) {
         plugins.push(Zombie.getGraphicsCommands());
         RobotClass = Zombie;
     }
@@ -253,7 +257,7 @@ function setSpeed() {
     
     let scale = (maxspeed-minspeed) / (maxslider-minslider);
     
-    if (zombie !== null) {
+    if (zombie) {
         interp.setSpeed(Math.exp(runspeed.value * scale + minspeed));
     }
 }
