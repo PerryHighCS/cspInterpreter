@@ -90,8 +90,10 @@ export class RobotWorld {
                 }
             });
             
-            // Draw the robot
-            draw({obj: this.robot, x: this.robot.x, y: this.robot.y});
+            if (this.robot) {
+                // Draw the robot
+                draw({obj: this.robot, x: this.robot.x, y: this.robot.y});
+            }
         };
         
         /**

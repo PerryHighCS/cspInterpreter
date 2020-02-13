@@ -51,9 +51,24 @@ let world = null;
 
 let worldEditor = null;
 
-// TODO: Check and load spec from URL query parameters
-initScenario(spec); // init default scenario
+// Check get url parameters
+var params = new URLSearchParams(window.location.search);
 
+// If the url contains a GIST id
+if (params.has('gist')) {
+    loadFromGist(decodeURI(params.get('gist')),
+        (files) => {
+            spec = JSON.parse(files[0].contents);
+            console.log(spec);
+            initScenario(spec);
+        }, 
+        (x, txtStatus, error) => {
+                alert(txtStatus + " error retrieving github gist " + error);
+            });
+}
+else {    
+    initScenario(spec); // init default scenario
+}
 function initScenario(worldSpec, usePlugins, doZombie) {
     
     plugins = basePlugins;
