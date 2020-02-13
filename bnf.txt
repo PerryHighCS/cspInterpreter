@@ -24,7 +24,7 @@ start = _ lst:global_statement_list _ {return new ParseRoot(lst, functionList);}
 
 keyword = 'IF' / 'ELSE' / 'PROCEDURE' / 'REPEAT' / 'TIMES' / 'AND' / 'OR' / 'NOT' / 'MOD' / 'FOR';
 
-_ "whitespace" = comment { return " "; } /
+_ "whitespace" = _ comment _ { return " "; } /
 				[ \t\n\r]* { return " "; };
 EOF = !.
 
