@@ -58,9 +58,11 @@ var params = new URLSearchParams(window.location.search);
 if (params.has('gist')) {
     loadFromGist(decodeURI(params.get('gist')),
         (files) => {
-            spec = JSON.parse(files[0].contents);
-            console.log(spec);
-            initScenario(spec);
+            if (files && files.length > 0) {
+                spec = JSON.parse(files[0].contents);
+            }
+            initScenario(spec);           
+            
         }, 
         (x, txtStatus, error) => {
                 alert(txtStatus + " error retrieving github gist " + error);
