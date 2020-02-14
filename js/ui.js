@@ -281,9 +281,7 @@ function setSpeed() {
     
     let scale = (maxspeed-minspeed) / (maxslider-minslider);
     
-    if (zombie) {
-        interp.setSpeed(Math.exp(runspeed.value * scale + minspeed));
-    }
+    interp.setSpeed(Math.exp(runspeed.value * scale + minspeed));
 }
 
 function clearMarks() {
